@@ -1,0 +1,11 @@
+[project]
+name = "iwannaeat"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.138.1",
+    "orjson>=3.11.9",
+    "sqlalchemy[asyncio]>=2.0.51",
+]
