@@ -1,13 +1,71 @@
 [project]
-name = "iwannaeat"
+name = "IwannaEat"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.18.5",
+    "asyncpg>=0.31.0",
     "fastapi[standard]>=0.138.1",
     "orjson>=3.11.9",
     "sqlalchemy[asyncio]>=2.0.51",
     "uuid6>=2025.0.1",
+]
+
+[tool.uv]  # ball idk, ensure correct environment
+environments = [
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'"
+]
+
+[tool.ruff]  #  uv run ruff check .
+fix = false
+line-length = 90
+exclude = ["alembic", "templates", "*.html", "*.jinja2"]
+lint.select = [
+    "E",   # Pycodestyle errors
+    "F",   # Pyflakes
+    "I",   # Isort
+    "UP",  # Pyupgrade
+    "N",   # PEP8 naming
+    "B",   # Bugbear
+    "C4",  # Comprehensions
+    "RUF", # Ruff-specific
+    "A",   # Builtins
+    "ASYNC", # Flake8-async
+    "S",   # Security
+    "T10", # Debugger
+    "EM",  # Error messages
+    "YTT", # Python 3.10+ features
+    "PL",  # Pylint
+    "W",  # Pycodestyle warnings
+
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["IwannaEat"]  # name of the project
+
+[tool.ruff.format]
+quote-style = "double"  # двойные кавычки вместо одинарных
+indent-style = "space"  # пробелы вместо табов
+# Автоматическое определение переносов строк
+line-ending = "auto"  # автоматически определяет LF (Unix) или CRLF (Windows)
+
+[tool.ruff.lint.flake8-quotes]
+# Везде двойные кавычки
+avoid-escape = true
+docstring-quotes = "double"
+
+[tool.ruff.lint.per-file-ignores]
+"alembic/versions/*.py" = [
+    "F401",  # unused import - в миграциях много неиспользуемых импортов
+    "E402",  # module import not at top of file - миграции нарушают этот порядок
+    "N802",  # function name should be lowercase - в миграциях camelCase
+    "N806",  # variable in function should be lowercase - имена таблиц в UPPERCASE
+]
+"tests/*.py" = [
+    "S101",    # use of assert - в тестах assert нормально
+    "PLR2004", # magic value - в тестах много "магических" значений
+    "ARG001",  # unused argument - в фикстурах аргументы могут не использоваться
 ]
