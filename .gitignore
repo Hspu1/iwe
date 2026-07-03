@@ -50,3 +50,6 @@ htmlcov/
 # IDE
 .idea/
 *.iml
+
+# local stuff
+.local
