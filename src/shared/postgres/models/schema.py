@@ -46,7 +46,9 @@ class WalletsModel(Base):
 class DishesModel(Base, UUIDv7Mixin):
     __tablename__ = "dishes"
 
-    info: Mapped[dict] = mapped_column(JSONB, nullable=False, sort_order=2)
+    info: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, sort_order=2
+    )  # needed well designed data structure
     is_available: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, sort_order=3
     )
@@ -57,7 +59,7 @@ class DishesModel(Base, UUIDv7Mixin):
             func.lower(info["name"].as_string()),
             unique=True,
             postgresql_where=is_available.is_(True),
-        ),
+        ),  # must define "name" key
         Index(
             "idx_dishes_info_path_gin",
             info,

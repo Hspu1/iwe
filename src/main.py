@@ -27,4 +27,4 @@ def create_app() -> FastAPI:
 app = create_app()
 
 # run locally w/
-# uv run --group dev uvicorn src.main:app --host 127.0.0.1 --port 67 --workers 1
+# uv run --group dev uvicorn src.main:app --host 127.0.0.1 --port 1488 --workers 1
