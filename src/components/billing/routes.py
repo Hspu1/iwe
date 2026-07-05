@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from src.core.dependencies import PgSession
 
-from .handlers import top_up_balance
+from .handlers import top_up_request
 
 billing_router = APIRouter(prefix="/billing")
 
@@ -16,7 +16,7 @@ class TopUpRequest(BaseModel):
 
 
 @billing_router.post("/top-up", status_code=status.HTTP_200_OK)
-async def top_up(session: PgSession, request: TopUpRequest) -> int:
-    return await top_up_balance(
+async def create_request(session: PgSession, request: TopUpRequest) -> str:
+    return await top_up_request(
         session=session, user_id=request.user_id, amount=request.amount
     )
