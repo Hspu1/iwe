@@ -11,7 +11,7 @@ class TimestampMixin:
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
-        sort_order=-100,
+        sort_order=-67,
     )
 
 
