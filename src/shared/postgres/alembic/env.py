@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from src.core.env_conf import pg_stg
 from src.shared.postgres.base import Base
-from src.shared.postgres.models.schema import (
+from src.shared.postgres.schema import (
     DishesModel,
     DishIngredientsModel,
     IngredientsModel,

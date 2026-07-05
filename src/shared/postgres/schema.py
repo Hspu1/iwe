@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSON, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ..base import Base
+from .base import Base
 from .enums import OrderStatus, OutboxEventType
 from .mixins import TimestampMixin, UUIDv7Mixin
 
