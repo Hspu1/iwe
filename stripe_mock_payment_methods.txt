@@ -1,7 +1,7 @@
 swagger and RDBMS only
 
 Frontend's business (no mocking but real sensitive data via official SDK):
-curl.exe https://api.stripe.com/v1/setup_intents -u "sk_test_51TpY3ALtF3lqZiJ7UBrvUHTse7vcbOYcHN72n8I3cFOfJS2sEnCSMXUDCBZoQqY2DqZpDrb0NJEkjWpJCJwAGK7g00L2rY1d3f:" -d "payment_method=pm_card_visa"
+curl.exe https://api.stripe.com/v1/setup_intents -u "...:" -d "payment_method=pm_card_visa"
 --> fetched "payment_method": "pm_1TqdORLtF3lqZiJ7DHylaCtl"
 
 EndPoint1
