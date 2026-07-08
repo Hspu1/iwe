@@ -72,13 +72,13 @@ async def create_topup_request(
     event_type = OutboxEventType.HOLD_FUNDS_REQUESTED
     payload = func.json_build_object(
         "user_id",
-        str(user_id),
+        user_id,
         "amount",
         amount,
         "seti_id",
         UserCardsModel.seti_id,
         "idempotency_key",
-        str(idempotency_key),
+        idempotency_key,
     )
 
     stmt_outbox = insert(OutboxEventsModel).from_select(
