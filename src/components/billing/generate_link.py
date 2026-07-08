@@ -17,28 +17,34 @@ router = APIRouter()
 #######################################################################################
 
 
+# class SensitiveData:
+#     user_id: UUID
+#     top_up_id: UUID
+#     total_amount: int
+
+
+#######################################################################################
+#######################################################################################
+
+
 @router.post("/test-pay-link/{top_up_id}", status_code=status.HTTP_201_CREATED)
-async def generate_link(
-    session: PgRoSession,
-    stripe_client: StripeClientDep,
-    top_up_id: UUID,
-) -> HttpUrl:
+async def fetch_sensitive_data():
+    return "Hey"
+    # amount, user_id = await get_top_up_info(session=session, top_up_id=request.top_up_id)
+    # try:
+    #     checkout_url = await create_stripe_checkout_session(
+    #         stripe_client=stripe_client,
+    #         top_up_id=request.top_up_id,
+    #         amount=amount,
+    #         user_id=user_id,
+    #         success_url=stripe_stg.stripe_success_url,
+    #         cancel_url=stripe_stg.stripe_cancel_url,
+    #     )
 
-    amount, user_id = await get_top_up_info(session=session, top_up_id=top_up_id)
-    try:
-        checkout_url = await create_stripe_checkout_session(
-            stripe_client=stripe_client,
-            top_up_id=top_up_id,
-            amount=amount,
-            user_id=user_id,
-            success_url=stripe_stg.stripe_success_url,
-            cancel_url=stripe_stg.stripe_cancel_url,
-        )
+    # except error.StripeError as e:
+    #     raise e
 
-    except error.StripeError as e:
-        raise e
-
-    return checkout_url
+    # return checkout_url
 
 
 #######################################################################################

@@ -9,13 +9,15 @@ from src.core.dependencies import PgSession
 from src.core.exceptions import RaceConditionCreatingWalletError
 from src.shared.postgres.schema import UsersModel, WalletsModel
 
-router = APIRouter(prefix="/identity", tags=["identity"])
+router = APIRouter()
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
-async def register(session: PgSession) -> str:
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+async def register(session: PgSession) -> dict[str, str]:
     user_id: UUID = await create_user_with_wallet(session=session)
-    return str(user_id)
+    return {
+        "user_id": str(user_id),
+    }
 
 
 #######################################################################################

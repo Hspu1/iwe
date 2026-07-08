@@ -18,7 +18,10 @@ router = APIRouter()
 
 class TopUpRequest(BaseModel):
     user_id: UUID
-    amount: int = Field(ge=5000, description="Amount in minor units (789.99 --> 78999)")
+    amount: int = Field(
+        ge=5000,
+        description="Amount in minor units (789.99 --> 78999)",
+    )
 
 
 #######################################################################################

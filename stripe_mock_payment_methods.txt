@@ -1,0 +1,44 @@
+swagger and RDBMS only
+
+Frontend's business (no mocking but real sensitive data via official SDK):
+curl.exe https://api.stripe.com/v1/setup_intents -u "sk_test_51TpY3ALtF3lqZiJ7UBrvUHTse7vcbOYcHN72n8I3cFOfJS2sEnCSMXUDCBZoQqY2DqZpDrb0NJEkjWpJCJwAGK7g00L2rY1d3f:" -d "payment_method=pm_card_visa"
+--> fetched "payment_method": "pm_1TqdORLtF3lqZiJ7DHylaCtl"
+
+EndPoint1
+- user_id; pm_1TqdORLtF3lqZiJ7DHylaCtl
+---------------------------
+insert to somewhere
+---------------------------
+- 201
+
+EndPoint2
+- user_id; order_id (or amount for testing)
+---------------------------
+counting the total_amount considering taxes, delivery, cashback etc;
+insert status PENDING (wallet_top_ups model)
+and some shi to outbox eg process ts (pm_1TqdORLtF3lqZiJ7DHylaCtl)
+---------------------------
+- 202
+
+Worker (after CDC + EB magic)
+goes to stripe (considering its api limits) with confirm=true and
+capture_method=manual and idempotency_key
+
+INTERNAL EndPoint1
+- stripe webhook
+---------------------------
+DANGER: RACE CONDITION
+0) check signature; event type; metadata; uuid format
+1) select and check top up status
+2) update top up status
+3) update balance and handle exceptions:
+asyncpg.exceptions.DataError "value out of int64 range"
+asyncpg.exceptions.NumericValueOutOfRangeError "bigint out of range"
+4) insert some shi to outbox (future CDC + EB to analytics)
+---------------------------
+- 200
+
+Cron Jobs:
+- clean PENDINGs (wallet_top_ups model) and CREATED (orders model)
+after some existing time (wb indexes here huh)
+- clean outbox_events model after some existing time

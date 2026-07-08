@@ -6,15 +6,17 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiohttp>=3.14.1",
     "alembic>=1.18.5",
     "asyncpg>=0.31.0",
     "fastapi>=0.139.0",
     "granian>=2.7.8",
     "httpx>=0.28.1",
+    "loguru>=0.7.3",
     "orjson>=3.11.9",
     "pydantic-settings>=2.14.2",
     "sqlalchemy[asyncio]>=2.0.51",
-    "stripe[asyncio]>=15.3.0",
+    "stripe>=15.3.0",
     "uuid6>=2025.0.1",
 ]
 

@@ -1,0 +1,67 @@
+swagger and RDBMS only
+
+Frontend's business (official SDK via SetupIntent):
+- safe tokenization of card on Stripe side
+- returns payment_method token eg pm_1TqdORLtF3lqZiJ7DHylaCtl
+
+SEP
+<nth>
+---------------------------
+Going to the stripe api with pm_card_visa as a mock
+---------------------------
+- pm_1TqdORLtF3lqZiJ7DHylaCtl
+
+EndPoint1
+- user_id; pm_1TqdORLtF3lqZiJ7DHylaCtl
+---------------------------
+~~insert or update saved payment method token for user_id into user_payment_methods model~~
+pm_*** to wallets (or wallet top ups or rethink all of that) model considering user_id ig.
+---------------------------
+- 201
+
+EndPoint2
+- user_id; order_id (or amount for testing)
+---------------------------
+counting the total_amount considering taxes, delivery, cashback etc;
+generate payment_intent uuid;
+sync post to stripe payment_intents API using saved pm_token and total_amount with
+idempotency_key=wallet_top_ups_hold_<generated_uuid> and capture_method=manual and confirm=true;
+handle stripe errors (402 card declined / no money) -> return 400 immediately to frontend;
+if stripe hold success -> start RDBMS transaction:
+insert user_id, total_amount, stripe_payment_intent_id with status PENDING (wallet_top_ups model);
+insert order data with status CREATED (orders model);
+insert payload {"wallet_top_ups_id": X, "payment_intent_id": Y} with CONFIRM_CAPTURE event_type to outbox_events model;
+---------------------------
+- 200 with wallet_top_ups.id (UX is saved, money is guaranteed to be held, no heavy webhook dependency for core flow)
+
+Worker (after CDC + EB magic) powered by stamina and circuit breaker
+CONSIDERING STRIPE API LIMITS (PREVENT 429)
+post to stripe payment_intents capture API using PaymentIntent ID and idempotency_key=capture_<outbox_events.id>;
+retry 50* and 429 w/exponential backoff, circuit breaker after 7th retry.
+Btw 80% of max rps overall!
+if success -> wait for the webhook, if brutal fail -> ???
+
+INTERNAL EndPoint1
+- stripe webhook
+---------------------------
+What if bad webhook? Or brutal fail?
+DANGER: RACE CONDITION
+---------------------------
+0) check signature; event type; metadata; uuid format
+1) select and check top up status
+2) update top up status
+3) update balance and handle exceptions:
+asyncpg.exceptions.DataError "value out of int64 range"
+asyncpg.exceptions.NumericValueOutOfRangeError "bigint out of range"
+4) insert some shi to outbox (future CDC + EB to analytics)
+---------------------------
+- 200
+
+Worker Compensation Flow (for failed limits)
+select from outbox_events where event_type = REFUND_STRIPE_PAYMENT using SELECT FOR UPDATE SKIP LOCKED;
+post to stripe refunds API using PaymentIntent ID and idempotency_key=refund_<outbox_events.id>;
+
+Cron Jobs
+- clean PENDINGs (wallet_top_ups model) and CREATED (orders model)
+after some existing time (wb indexes here huh)
+- clean outbox_events model after some existing time

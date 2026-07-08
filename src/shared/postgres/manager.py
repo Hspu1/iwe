@@ -69,7 +69,7 @@ class PostgresManager(StrictSlots):
                 else "QueuePool"
             )
             print(
-                f"CONNECTED, database initialized in {
+                f"[CONNECTED] PostgreSQL initialized in {
                     (perf_counter() - start) * 1000:.2f}ms, pool={pool_name}",
                 flush=True,
             )

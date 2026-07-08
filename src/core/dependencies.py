@@ -26,10 +26,7 @@ async def get_pg_ro_session(request: Request) -> AsyncGenerator[AsyncSession, No
 
 
 async def get_stripe_client() -> StripeClient:
-    return StripeClient(
-        api_key=stripe_stg.stripe_secret_key,
-        http_client=HTTPXClient(),
-    )
+    return StripeClient(api_key=stripe_stg.stripe_secret_key)
 
 
 PgSession = Annotated[AsyncSession, Depends(get_pg_session)]

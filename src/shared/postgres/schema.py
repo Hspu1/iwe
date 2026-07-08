@@ -74,6 +74,7 @@ class WalletsModel(Base):
     cashback_balance: Mapped[int] = mapped_column(
         BIGINT, nullable=False, default=0, server_default=text("0"), sort_order=3
     )  # minor units
+    seti_id: Mapped[str] = mapped_column(String(29), nullable=True, sort_order=4)
 
 
 class DishesModel(Base, UUIDv7Mixin):
