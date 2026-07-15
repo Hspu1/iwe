@@ -107,8 +107,8 @@ async def bind_seti_id(
                 ErrCauseState.DUPLICATE_KEY,
                 ErrCauseConstraint.UQ_USER_CARDS_SETI_ID,
             ):
-                # also triggers when 23505 hits
-                # user_id and seti_id simultaneously
+                # also triggers when 23505 fires
+                # for both user_id and seti_id simultaneously
                 return ResultMessages.SETI_ID_ALREADY_EXISTS
 
             case _:

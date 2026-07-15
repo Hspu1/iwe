@@ -63,11 +63,7 @@ class PostgresManager(StrictSlots):
             )
             await self.ping()
 
-            pool_name = (
-                "NullPool"
-                if self._engine.pool.__class__.__name__ == "NullPool"
-                else "QueuePool"
-            )
+            pool_name = self._engine.pool.__class__.__name__
             print(
                 f"[CONNECTED] PostgreSQL initialized in {
                     (perf_counter() - start) * 1000:.2f}ms, pool={pool_name}",

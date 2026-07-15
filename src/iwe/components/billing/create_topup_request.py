@@ -2,12 +2,12 @@ from enum import StrEnum
 from typing import cast
 from uuid import UUID
 
-import asyncpg
+from asyncpg.exceptions import LockNotAvailableError, UniqueViolationError
 from fastapi import APIRouter, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import exists, func, literal, select
+from sqlalchemy import func, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from iwe.core.dependencies import pg_session
@@ -15,7 +15,6 @@ from iwe.shared.postgres.enums import OutboxEventType, TopUpStatus
 from iwe.shared.postgres.schema import (
     OutboxEventsModel,
     UserCardsModel,
-    UsersModel,
     WalletTopUpsModel,
 )
 
@@ -40,15 +39,16 @@ class TopUpRequest(BaseModel):
 
 class ResultMessages(StrEnum):
     SUCCESS = "success"
-    USER_NOT_FOUND = "user not found"
     NO_CARD_LAD = "no card lad"
     HOLD_THE_FUCK_UP = "hold the fuck up"
     UNSUPPORTED_RESULT = "ya forgot to handle new msg"
+    CONCURRENT_LOCK_TRY_AGAIN = "oopsie smth went wrong, try again"
 
 
 class ErrCauseState(StrEnum):
     OP_VIOLATES_FK_CONSTRAINT = "23503"
     DUPLICATE_KEY = "23505"
+    LOCK_NOT_AVAILABLE = "55P03"
 
 
 class ErrCauseConstraint(StrEnum):
@@ -73,11 +73,12 @@ async def create_request(request: TopUpRequest, response: Response) -> ResultMes
         )
 
     match verdict:
-        case ResultMessages.USER_NOT_FOUND:
-            response.status_code = status.HTTP_404_NOT_FOUND
+        case ResultMessages.CONCURRENT_LOCK_TRY_AGAIN:
+            response.status_code = status.HTTP_409_CONFLICT
             return verdict
 
         case ResultMessages.NO_CARD_LAD:
+            # also triggers when the user is missing
             response.status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
             return verdict
 
@@ -102,9 +103,25 @@ async def create_topup_request(
     session: AsyncSession, user_id: UUID, amount: int, idempotency_key: UUID
 ) -> ResultMessages:
 
-    user_exists = await session.scalar(select(exists().where(UsersModel.id == user_id)))
-    if not user_exists:
-        return ResultMessages.USER_NOT_FOUND
+    stmt_lock_card = (
+        select(UserCardsModel.seti_id)
+        .where(UserCardsModel.user_id == user_id)
+        .with_for_update(nowait=True)
+    )
+
+    try:
+        res_card = await session.execute(stmt_lock_card)
+        card_seti_id = res_card.scalar_one_or_none()
+
+    except DBAPIError as err:
+        driver_err = cast(LockNotAvailableError, err.__cause__.__cause__)  # wtf
+        if driver_err.sqlstate == ErrCauseState.LOCK_NOT_AVAILABLE:
+            return ResultMessages.CONCURRENT_LOCK_TRY_AGAIN
+
+        raise err
+
+    if not card_seti_id:
+        return ResultMessages.NO_CARD_LAD
 
     stmt_top_up = (
         pg_insert(WalletTopUpsModel)
@@ -128,10 +145,10 @@ async def create_topup_request(
     )
 
     try:
-        res_top_up = await session.execute(stmt_top_up)
+        await session.execute(stmt_top_up)
 
     except IntegrityError as err:
-        driver_err = cast(asyncpg.PostgresError, err.__cause__.__cause__)  # wtf
+        driver_err = cast(UniqueViolationError, err.__cause__.__cause__)  # wtf
 
         if (
             driver_err.sqlstate == ErrCauseState.DUPLICATE_KEY
@@ -142,25 +159,20 @@ async def create_topup_request(
 
         raise err
 
-    if res_top_up.one_or_none() is None:
-        return ResultMessages.NO_CARD_LAD
-
+    event_type = literal(OutboxEventType.HOLD_FUNDS_REQUESTED)
     payload = func.json_build_object(
         WalletTopUpsModel.user_id.name,
         user_id,
         WalletTopUpsModel.amount.name,
         amount,
         UserCardsModel.seti_id.name,
-        UserCardsModel.seti_id,
+        card_seti_id,
         WalletTopUpsModel.idempotency_key.name,
         idempotency_key,
     )
 
-    stmt_outbox = pg_insert(OutboxEventsModel).from_select(
-        [OutboxEventsModel.event_type.name, OutboxEventsModel.payload.name],
-        select(literal(OutboxEventType.HOLD_FUNDS_REQUESTED), payload)
-        .select_from(UserCardsModel)
-        .where(UserCardsModel.user_id == user_id),
+    stmt_outbox = pg_insert(OutboxEventsModel).values(
+        event_type=event_type, payload=payload
     )
 
     await session.execute(stmt_outbox)
