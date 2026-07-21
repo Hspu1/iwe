@@ -1,5 +1,6 @@
 {
   "name": "Psychic Clown Double Burger",
+  "price_usd_minor_units": 20800,
   "meta": {
     "weight_g": 925.0,
     "is_vegan": true,

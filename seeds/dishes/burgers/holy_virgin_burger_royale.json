@@ -1,5 +1,6 @@
 {
   "name": "Holy Virgin Burger Royale",
+  "price_usd_minor_units": 37300,
   "meta": {
     "weight_g": 597.4,
     "is_vegan": false,

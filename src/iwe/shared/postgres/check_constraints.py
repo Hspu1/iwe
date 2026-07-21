@@ -5,15 +5,18 @@ from sqlalchemy import CheckConstraint, text
 
 CHK_DISHES_ROOT_STRUCTURE_AND_TYPES: Final[CheckConstraint] = CheckConstraint(
     text(
-        "(info -> 'name') IS NOT NULL AND (jsonb_typeof(info -> 'name') = 'string') AND "
-        "(info -> 'meta') IS NOT NULL AND (jsonb_typeof(info -> 'meta') = 'object') AND "
-        "(info -> 'origin_and_recipe') IS NOT NULL AND (jsonb_typeof(info -> 'origin_and_recipe') = 'object')"
+        "(jsonb_typeof(info -> 'name') = 'string') AND "
+        "(jsonb_typeof(info -> 'meta') = 'object') AND "
+        "(jsonb_typeof(info -> 'origin_and_recipe') = 'object') AND "
+        "(jsonb_typeof(info -> 'price_usd_minor_units') = 'number') AND "
+        "((info ->> 'price_usd_minor_units')::numeric % 1 = 0)"
     ),
     name="chk_dishes_root_structure_and_types",
 )
+# tho e.g. 1488.00 (= 1488) does not trigger this CHK, it's alr
 
 CHK_DISHES_NAME_RULES: Final[CheckConstraint] = CheckConstraint(
-    text("(length(info ->> 'name') BETWEEN 5 AND 67) AND (info ->> 'name' ~* 'burger')"),
+    text("(length(info ->> 'name') BETWEEN 6 AND 67) AND (info ->> 'name' ~* 'burger')"),
     name="chk_dishes_name_rules",
 )
 

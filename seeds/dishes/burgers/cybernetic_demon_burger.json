@@ -1,5 +1,6 @@
 {
   "name": "Cybernetic Demon Burger",
+  "price_usd_minor_units": 14800,
   "meta": {
     "weight_g": 854.6,
     "is_vegan": false,

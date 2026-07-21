@@ -28,16 +28,52 @@ from .check_constraints import (
 from .enums import OrderStatus, OutboxEventType, TopUpStatus
 from .mixins import TimestampMixin, UUIDv7Mixin
 
+# op.execute("ALTER TABLE orders SET (fillfactor = 88)")
 # op.execute("ALTER TABLE wallet_top_ups SET (fillfactor = 88)")
 # op.execute("ALTER TABLE wallets SET (fillfactor = 76)")
 # op.execute("ALTER TABLE warehouse SET (fillfactor = 67)")
+# op.execute("ALTER TABLE order_contents SET (fillfactor = 80)")
 
 
 class UsersModel(Base, UUIDv7Mixin):
     __tablename__ = "users"
 
 
-class WalletTopUpsModel(Base, TimestampMixin, UUIDv7Mixin):
+class WalletsModel(Base):
+    # !!! SET FILLFACTOR IN ALEMBIC SCRIPTS !!! --> 76%
+    __tablename__ = "wallets"
+
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        primary_key=True,
+        sort_order=1,
+    )
+    balance: Mapped[int] = mapped_column(
+        BIGINT, nullable=False, default=0, server_default=text("0"), sort_order=2
+    )  # minor units
+    cashback_balance: Mapped[int] = mapped_column(
+        BIGINT, nullable=False, default=0, server_default=text("0"), sort_order=3
+    )  # minor units
+
+
+class UserCardsModel(Base, UUIDv7Mixin):
+    __tablename__ = "user_cards"
+
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        sort_order=1,
+    )
+    seti_id: Mapped[str] = mapped_column(String(29), nullable=False, sort_order=2)
+
+    __table_args__ = (
+        Index("uq_user_cards_user_id", user_id, unique=True),
+        Index("uq_user_cards_seti_id", seti_id, unique=True),
+    )
+
+
+class WalletTopUpsModel(Base, UUIDv7Mixin, TimestampMixin):
     # !!! SET FILLFACTOR IN ALEMBIC SCRIPTS !!! --> 88%
     __tablename__ = "wallet_top_ups"
 
@@ -73,50 +109,13 @@ class WalletTopUpsModel(Base, TimestampMixin, UUIDv7Mixin):
     )
 
 
-class UserCardsModel(Base, UUIDv7Mixin):
-    __tablename__ = "user_cards"
-
-    user_id: Mapped[UUID] = mapped_column(
-        Uuid,
-        ForeignKey("users.id", ondelete="RESTRICT"),
-        sort_order=1,
-    )
-    seti_id: Mapped[str] = mapped_column(String(29), nullable=False, sort_order=2)
-
-    __table_args__ = (
-        Index("uq_user_cards_user_id", user_id, unique=True),
-        Index("uq_user_cards_seti_id", seti_id, unique=True),
-    )
-
-
-class WalletsModel(Base):
-    # !!! SET FILLFACTOR IN ALEMBIC SCRIPTS !!! --> 76%
-    __tablename__ = "wallets"
-
-    user_id: Mapped[UUID] = mapped_column(
-        Uuid,
-        ForeignKey("users.id", ondelete="RESTRICT"),
-        primary_key=True,
-        sort_order=1,
-    )
-    balance: Mapped[int] = mapped_column(
-        BIGINT, nullable=False, default=0, server_default=text("0"), sort_order=2
-    )  # minor units
-    cashback_balance: Mapped[int] = mapped_column(
-        BIGINT, nullable=False, default=0, server_default=text("0"), sort_order=3
-    )  # minor units
-
-
 class DishesModel(Base, UUIDv7Mixin):
     __tablename__ = "dishes"
 
     is_available: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, sort_order=1
     )
-    info: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, sort_order=2
-    )  # meta, cooking_process, ingredients_weight_g, supply_chain gotta be in NoSQL DBMS
-    # but am too lazy
+    info: Mapped[dict] = mapped_column(JSONB, nullable=False, sort_order=2)
 
     __table_args__ = (
         CHK_DISHES_ROOT_STRUCTURE_AND_TYPES,
@@ -193,17 +192,16 @@ class WarehouseModel(Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, sort_order=2)
 
 
-class OrdersModel(Base, TimestampMixin, UUIDv7Mixin):
+class OrdersModel(Base, UUIDv7Mixin, TimestampMixin):
+    # !!! SET FILLFACTOR IN ALEMBIC SCRIPTS !!! --> 88%
     __tablename__ = "orders"
 
     user_id: Mapped[UUID] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, sort_order=1
     )
-    total_price: Mapped[int] = mapped_column(BIGINT, nullable=False, sort_order=2)
     status: Mapped[OrderStatus] = mapped_column(
-        SmallInteger, nullable=False, sort_order=3
+        SmallInteger, nullable=False, sort_order=2
     )
-    items: Mapped[dict] = mapped_column(JSONB, nullable=False, sort_order=4)
 
     __table_args__ = (
         Index(
@@ -215,10 +213,26 @@ class OrdersModel(Base, TimestampMixin, UUIDv7Mixin):
     )
 
 
-class OutboxEventsModel(Base, TimestampMixin):
+class OrderContentsModel(Base):
+    # !!! SET FILLFACTOR IN ALEMBIC SCRIPTS !!! --> 80%
+    __tablename__ = "order_contents"
+
+    id: Mapped[int] = mapped_column(
+        BIGINT, primary_key=True, autoincrement=True, sort_order=1
+    )  # dummy
+    order_id: Mapped[UUID] = mapped_column(
+        Uuid, ForeignKey("orders.id", ondelete="RESTRICT"), nullable=False, sort_order=2
+    )
+    cost_usd: Mapped[int] = mapped_column(
+        BIGINT, nullable=False, sort_order=3
+    )  # dish price * qty
+    qty: Mapped[int] = mapped_column(SmallInteger, nullable=False, sort_order=4)
+    dish_name: Mapped[str] = mapped_column(String(67), nullable=False, sort_order=5)
+
+
+class OutboxEventsModel(Base, UUIDv7Mixin, TimestampMixin):
     __tablename__ = "outbox_events"
 
-    id: Mapped[int] = mapped_column(BIGINT, primary_key=True, autoincrement=True)
     event_type: Mapped[OutboxEventType] = mapped_column(
         SmallInteger, nullable=False, sort_order=1
     )
