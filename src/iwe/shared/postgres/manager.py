@@ -1,12 +1,7 @@
 from time import perf_counter
 from typing import Any
 
-from orjson import (
-    OPT_NON_STR_KEYS,
-    OPT_SERIALIZE_UUID,
-    dumps,
-    loads,
-)
+import orjson
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
@@ -23,11 +18,11 @@ from iwe.core.exceptions import PostgresNotReachableError
 
 
 def orjson_dumps(data: Any) -> bytes:
-    return dumps(data, option=OPT_SERIALIZE_UUID | OPT_NON_STR_KEYS)
+    return orjson.dumps(data, option=orjson.OPT_SERIALIZE_UUID | orjson.OPT_NON_STR_KEYS)
 
 
 def orjson_loads(data: str | bytes) -> Any:
-    return loads(data)
+    return orjson.loads(data)
 
 
 class PostgresManager(StrictSlots):

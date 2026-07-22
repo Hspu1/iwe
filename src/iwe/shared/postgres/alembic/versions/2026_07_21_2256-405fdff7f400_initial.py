@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: 1193f165efa5
+Revision ID: 405fdff7f400
 Revises:
-Create Date: 2026-07-21 21:31:29.435302
+Create Date: 2026-07-21 22:56:43.150266
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '1193f165efa5'
+revision: str = '405fdff7f400'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -41,7 +41,7 @@ def upgrade() -> None:
     op.create_table('ingredients',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('name', sa.String(length=50), nullable=False),
-    sa.Column('is_available', sa.Boolean(), nullable=False),
+    sa.Column('is_available', sa.Boolean(), server_default='true', nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('uq_ingredients_name_lowercase', 'ingredients', [sa.literal_column('lower(name)')], unique=True, postgresql_where=sa.text('is_available IS true'))

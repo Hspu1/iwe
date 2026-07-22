@@ -145,7 +145,7 @@ class IngredientsModel(Base, UUIDv7Mixin):
 
     name: Mapped[str] = mapped_column(String(50), nullable=False, sort_order=1)
     is_available: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, sort_order=2
+        Boolean, nullable=False, default=True, server_default="true", sort_order=2
     )
 
     __table_args__ = (

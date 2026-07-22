@@ -2,7 +2,6 @@ from typing import Final
 
 from sqlalchemy import CheckConstraint, text
 
-
 CHK_DISHES_ROOT_STRUCTURE_AND_TYPES: Final[CheckConstraint] = CheckConstraint(
     text(
         "(jsonb_typeof(info -> 'name') = 'string') AND "

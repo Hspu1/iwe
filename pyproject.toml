@@ -44,7 +44,7 @@ exclude = [".venv", "deploy/alembic"]
 [tool.ruff]
 fix = false
 line-length = 90
-exclude = ["alembic", "assets", "*.html", "*.jinja2", "check_constraints.py"]
+exclude = ["alembic", "assets", "*.html", "*.jinja2"]
 lint.select = [
     "E",   # Pycodestyle errors
     "F",   # Pyflakes
