@@ -6,6 +6,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Index,
+    Integer,
     SmallInteger,
     String,
     UniqueConstraint,
@@ -49,6 +50,7 @@ class WalletsModel(Base):
         primary_key=True,
         sort_order=1,
     )
+
     balance: Mapped[int] = mapped_column(
         BIGINT, nullable=False, default=0, server_default=text("0"), sort_order=2
     )  # minor units
@@ -168,6 +170,7 @@ class WarehouseModel(Base):
         primary_key=True,
         sort_order=1,
     )
+
     weight_g: Mapped[float] = mapped_column(Float, nullable=False, sort_order=2)
 
 
@@ -180,6 +183,9 @@ class OrdersModel(Base, UUIDv7Mixin, TimestampMixin):
     )
     status: Mapped[OrderStatus] = mapped_column(
         SmallInteger, nullable=False, sort_order=2
+    )
+    total_cost_usd: Mapped[int] = mapped_column(
+        BIGINT, nullable=False, default=0, server_default="0", sort_order=3
     )
 
     __table_args__ = (
@@ -196,17 +202,17 @@ class OrderContentsModel(Base):
     # !!! SET FILLFACTOR IN ALEMBIC SCRIPTS !!! --> 80%
     __tablename__ = "order_contents"
 
-    id: Mapped[int] = mapped_column(
-        BIGINT, primary_key=True, autoincrement=True, sort_order=1
-    )  # dummy
     order_id: Mapped[UUID] = mapped_column(
-        Uuid, ForeignKey("orders.id", ondelete="RESTRICT"), nullable=False, sort_order=2
+        Uuid, ForeignKey("orders.id", ondelete="RESTRICT"), primary_key=True, sort_order=1
     )
-    cost_usd: Mapped[int] = mapped_column(
-        BIGINT, nullable=False, sort_order=3
-    )  # dish price * qty
+    dish_id: Mapped[UUID] = mapped_column(
+        Uuid, ForeignKey("dishes.id", ondelete="RESTRICT"), primary_key=True, sort_order=2
+    )
+
+    price_usd: Mapped[int] = mapped_column(
+        Integer, nullable=False, sort_order=3
+    )  # minor units
     qty: Mapped[int] = mapped_column(SmallInteger, nullable=False, sort_order=4)
-    dish_name: Mapped[str] = mapped_column(String(67), nullable=False, sort_order=5)
 
 
 class OutboxEventsModel(Base, UUIDv7Mixin, TimestampMixin):

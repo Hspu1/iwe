@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: 405fdff7f400
+Revision ID: bf939f29db61
 Revises:
-Create Date: 2026-07-21 22:56:43.150266
+Create Date: 2026-07-23 19:52:40.668731
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '405fdff7f400'
+revision: str = 'bf939f29db61'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -73,6 +73,7 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('user_id', sa.Uuid(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),
+    sa.Column('total_cost_usd', sa.BIGINT(), server_default='0', nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -132,13 +133,13 @@ def upgrade() -> None:
 
 
     op.create_table('order_contents',
-    sa.Column('id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('order_id', sa.Uuid(), nullable=False),
-    sa.Column('cost_usd', sa.BIGINT(), nullable=False),
+    sa.Column('dish_id', sa.Uuid(), nullable=False),
+    sa.Column('price_usd', sa.Integer(), nullable=False),
     sa.Column('qty', sa.SmallInteger(), nullable=False),
-    sa.Column('dish_name', sa.String(length=67), nullable=False),
+    sa.ForeignKeyConstraint(['dish_id'], ['dishes.id'], ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['order_id'], ['orders.id'], ondelete='RESTRICT'),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('order_id', 'dish_id')
     )
     op.execute("ALTER TABLE order_contents SET (fillfactor = 80)")
     # ### end Alembic commands ###
