@@ -1,8 +1,6 @@
 from enum import StrEnum
-from typing import cast
 from uuid import UUID
 
-from asyncpg.exceptions import LockNotAvailableError, UniqueViolationError
 from fastapi import APIRouter, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, literal, select
@@ -121,7 +119,7 @@ async def create_topup_request(
         card_seti_id = res_card.scalar_one_or_none()
 
     except DBAPIError as err:
-        driver_err = cast(LockNotAvailableError, err.__cause__.__cause__)  # wtf
+        driver_err = err.__cause__.__cause__  # wtf
         if driver_err.sqlstate == ErrCauseState.LOCK_NOT_AVAILABLE:
             return ResultMessages.CONCURRENT_LOCK_TRY_AGAIN
 
@@ -160,7 +158,7 @@ async def create_topup_request(
         await session.execute(stmt_top_up)
 
     except IntegrityError as err:
-        driver_err = cast(UniqueViolationError, err.__cause__.__cause__)  # wtf
+        driver_err = err.__cause__.__cause__  # wtf
 
         if (
             driver_err.sqlstate == ErrCauseState.DUPLICATE_KEY
