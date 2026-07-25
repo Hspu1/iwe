@@ -1,14 +1,16 @@
 from enum import StrEnum
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import literal, select
+from sqlalchemy import literal, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from iwe.core.dependencies import pg_session
-from iwe.shared.postgres.schema import DishesModel, OrderContentsModel
+from iwe.shared.postgres.enums import OrderStatus
+from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersModel
 
 #######################################################################################
 #######################################################################################
@@ -25,7 +27,7 @@ class PositionsRequest(BaseModel):
 
 class ResultMessages(StrEnum):
     SUCCESS = "success"
-    INVALID_ORDER_OR_DISH = "order or dish not found"
+    INVALID_DISH_NAME = "dish not found"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
 
@@ -35,17 +37,17 @@ class ResultMessages(StrEnum):
 router = APIRouter()
 
 
-@router.post("/{order_id}/positions")
+@router.post("/cart/positions")
 async def manage_position(
-    order_id: UUID, request: PositionsRequest, response: Response
+    x_user_id: Annotated[UUID, Header()], payload: PositionsRequest, response: Response
 ) -> dict[str, ResultMessages]:
 
     async with pg_session() as session:
         verdict = await add_position(
             session=session,
-            order_id=order_id,
-            dish_name=request.dish_name,
-            qty=request.qty,
+            user_id=x_user_id,
+            dish_name=payload.dish_name,
+            qty=payload.qty,
         )
 
     match verdict:
@@ -55,7 +57,7 @@ async def manage_position(
                 "verdict": verdict,
             }
 
-        case ResultMessages.INVALID_ORDER_OR_DISH:
+        case ResultMessages.INVALID_DISH_NAME:
             response.status_code = status.HTTP_404_NOT_FOUND
             return {
                 "verdict": verdict,
@@ -73,8 +75,22 @@ async def manage_position(
 
 
 async def add_position(
-    session: AsyncSession, order_id: UUID, dish_name: str, qty: int
+    session: AsyncSession, user_id: UUID, dish_name: str, qty: int
 ) -> ResultMessages:
+
+    raw_order_id = (
+        pg_insert(OrdersModel)
+        .values(user_id=user_id, status=OrderStatus.DRAFT)
+        .on_conflict_do_update(
+            index_elements=[OrdersModel.user_id],
+            index_where=text("status = 1"),  # OrderStatus.DRAFT
+            set_={"status": OrdersModel.status},
+        )
+        .returning(OrdersModel.id)
+    )
+
+    retrieve_order_id = await session.execute(raw_order_id)
+    order_id = retrieve_order_id.scalar_one_or_none()
 
     stmt = (
         pg_insert(OrderContentsModel)
@@ -99,6 +115,6 @@ async def add_position(
 
     res = await session.execute(stmt)
     if not res.scalar_one_or_none():
-        return ResultMessages.INVALID_ORDER_OR_DISH
+        return ResultMessages.INVALID_DISH_NAME
 
     return ResultMessages.SUCCESS

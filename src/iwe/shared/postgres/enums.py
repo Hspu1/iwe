@@ -8,12 +8,15 @@ class TopUpStatus(IntEnum):
 
 
 class OrderStatus(IntEnum):
-    CREATED = 1
-    COOKING = 2
-    DELIVERING = 3
-    COMPLETED = 4
-    CANCELLED = 5
+    DRAFT = 1
+    FROZEN = 2
+    COOKING = 3
+    DELIVERING = 4
+    COMPLETED = 5
+    CANCELLED = 6
+    FAILED = 7
 
 
 class OutboxEventType(IntEnum):
     HOLD_FUNDS_REQUESTED = 1
+    # еще чето для ингредиентов
