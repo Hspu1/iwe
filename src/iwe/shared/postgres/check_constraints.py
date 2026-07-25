@@ -4,6 +4,11 @@ from sqlalchemy import CheckConstraint, text
 
 CHK_DISHES_ROOT_STRUCTURE_AND_TYPES: Final[CheckConstraint] = CheckConstraint(
     text(
+        "(info -> 'name') IS NOT NULL AND "
+        "(info -> 'meta') IS NOT NULL AND "
+        "(info -> 'origin_and_recipe') IS NOT NULL AND "
+        "(info -> 'price_cents') IS NOT NULL AND "
+
         "(jsonb_typeof(info -> 'name') = 'string') AND "
         "(jsonb_typeof(info -> 'meta') = 'object') AND "
         "(jsonb_typeof(info -> 'origin_and_recipe') = 'object') AND "

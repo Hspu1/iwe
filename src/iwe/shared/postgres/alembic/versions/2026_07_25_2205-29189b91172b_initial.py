@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: fb387a9d719a
+Revision ID: 29189b91172b
 Revises:
-Create Date: 2026-07-25 17:32:23.047591
+Create Date: 2026-07-25 22:05:39.944410
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'fb387a9d719a'
+revision: str = '29189b91172b'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,7 +25,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('is_available', sa.Boolean(), nullable=False),
     sa.Column('info', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.CheckConstraint("(jsonb_typeof(info -> 'name') = 'string') AND (jsonb_typeof(info -> 'meta') = 'object') AND (jsonb_typeof(info -> 'origin_and_recipe') = 'object') AND (jsonb_typeof(info -> 'price_cents') = 'number') AND ((info ->> 'price_cents')::numeric % 1 = 0)", name='chk_dishes_root_structure_and_types'),
+    sa.CheckConstraint("(info -> 'name') IS NOT NULL AND (info -> 'meta') IS NOT NULL AND (info -> 'origin_and_recipe') IS NOT NULL AND (info -> 'price_cents') IS NOT NULL AND (jsonb_typeof(info -> 'name') = 'string') AND (jsonb_typeof(info -> 'meta') = 'object') AND (jsonb_typeof(info -> 'origin_and_recipe') = 'object') AND (jsonb_typeof(info -> 'price_cents') = 'number') AND ((info ->> 'price_cents')::numeric % 1 = 0)", name='chk_dishes_root_structure_and_types'),
     sa.CheckConstraint("(length(info ->> 'name') BETWEEN 6 AND 67) AND (info ->> 'name' ~* 'burger')", name='chk_dishes_name_rules'),
     sa.CheckConstraint('\n        (info -> \'origin_and_recipe\' -> \'ingredients_weight_g\') IS NOT NULL AND\n        (jsonb_typeof(info -> \'origin_and_recipe\' -> \'ingredients_weight_g\') = \'object\') AND\n\n        NOT jsonb_path_exists(\n            info -> \'origin_and_recipe\' -> \'ingredients_weight_g\',\n            \'$.* ? (@.type() != "number" || @ < 0)\'\n        )\n    ', name='chk_dishes_dynamic_ingredients_weight_valid'),
     sa.CheckConstraint('\n        (jsonb_typeof(info -> \'meta\' -> \'weight_g\') = \'number\' AND (info -> \'meta\' -> \'weight_g\')::text::float > 0) AND\n        (jsonb_typeof(info -> \'meta\' -> \'is_vegan\') = \'boolean\') AND\n        (jsonb_typeof(info -> \'meta\' -> \'is_psyop\') = \'boolean\') AND\n\n        (jsonb_typeof(info -> \'meta\' -> \'macro\' -> \'calories\') = \'number\' AND (info -> \'meta\' -> \'macro\' ->> \'calories\')::float >= 0) AND\n        (jsonb_typeof(info -> \'meta\' -> \'macro\' -> \'proteins_g\') = \'number\' AND (info -> \'meta\' -> \'macro\' ->> \'proteins_g\')::float >= 0) AND\n        (jsonb_typeof(info -> \'meta\' -> \'macro\' -> \'fats_g\') = \'number\' AND (info -> \'meta\' -> \'macro\' ->> \'fats_g\')::float >= 0) AND\n        (jsonb_typeof(info -> \'meta\' -> \'macro\' -> \'carbs_g\') = \'number\' AND (info -> \'meta\' -> \'macro\' ->> \'carbs_g\')::float >= 0) AND\n\n        (jsonb_typeof(info -> \'meta\' -> \'micro_and_toxic\') = \'object\') AND\n        NOT jsonb_path_exists(\n            info -> \'meta\' -> \'micro_and_toxic\',\n            \'$.* ? (@.type() != "number" || @ < 0)\'\n        ) AND\n\n        (jsonb_typeof(info -> \'meta\' -> \'macro\' -> \'water_percentage\') = \'number\' AND\n        (info -> \'meta\' -> \'macro\' ->> \'water_percentage\')::float BETWEEN 0.0 AND 100.0)\n    ', name='chk_dishes_static_meta_metrics'),
