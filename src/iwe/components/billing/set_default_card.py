@@ -15,14 +15,6 @@ from iwe.shared.postgres.schema import UserCardsModel
 #######################################################################################
 
 
-class SetDefaultCardRequest(BaseModel):
-    seti_id: str
-
-
-#######################################################################################
-#######################################################################################
-
-
 class ResultMessages(StrEnum):
     SUCCESS = "success"
     CARD_NOT_FOUND = "card not found"
@@ -38,15 +30,27 @@ class ErrCauseState(StrEnum):
 #######################################################################################
 
 
+class SetDefCardRequest(BaseModel):
+    seti_id: str
+
+
+class SetDefCardResponse(BaseModel):
+    verdict: ResultMessages
+
+
+#######################################################################################
+#######################################################################################
+
+
 router = APIRouter()
 
 
 @router.patch("/cards/set-default")
 async def set_default_card(
     x_user_id: Annotated[UUID, Header()],
-    payload: SetDefaultCardRequest,
+    payload: SetDefCardRequest,
     response: Response,
-) -> dict[str, ResultMessages]:
+) -> SetDefCardResponse:
 
     async with pg_session() as session:
         verdict = await update_default_card(

@@ -12,21 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from iwe.core.dependencies import pg_session
 from iwe.shared.postgres.schema import UserCardsModel
 
-#######################################################################################
-#######################################################################################
-
-
-class BindRequest(BaseModel):
-    seti_id: str = Field(pattern=r"^seti_[a-zA-Z0-9]{24}$")
-    card_brand: str = Field(min_length=3, max_length=20)
-    card_last4: str = Field(pattern=r"^\d{4}$")
-    make_default: bool
-
 
 #######################################################################################
 #######################################################################################
-
-
 class ResultMessages(StrEnum):
     SUCCESS = "success"
     USER_NOT_FOUND = "user not found"
@@ -49,13 +37,28 @@ class ErrCauseConstraint(StrEnum):
 #######################################################################################
 #######################################################################################
 
+
+class BindSetiRequest(BaseModel):
+    seti_id: str = Field(pattern=r"^seti_[a-zA-Z0-9]{24}$")
+    card_brand: str = Field(min_length=3, max_length=20)
+    card_last4: str = Field(pattern=r"^\d{4}$")
+    make_default: bool
+
+
+class BindSetiResponse(BaseModel):
+    verdict: ResultMessages
+
+
+#######################################################################################
+#######################################################################################
+
 router = APIRouter()
 
 
 @router.post("/bind-card")
 async def bind_setup_intent(
-    x_user_id: Annotated[UUID, Header()], payload: BindRequest, response: Response
-) -> dict[str, ResultMessages]:
+    x_user_id: Annotated[UUID, Header()], payload: BindSetiRequest, response: Response
+) -> BindSetiResponse:
 
     async with pg_session() as session:
         verdict = await manage_card(

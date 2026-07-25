@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, status
+from pydantic import BaseModel
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,11 +12,19 @@ from iwe.shared.postgres.schema import UsersModel, WalletsModel
 #######################################################################################
 
 
+class RegisterResponse(BaseModel):
+    user_id: UUID
+
+
+#######################################################################################
+#######################################################################################
+
+
 router = APIRouter()
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register() -> dict[str, UUID]:
+async def register() -> RegisterResponse:
     async with pg_session() as session:
         user_id: UUID = await create_user_with_wallet(session=session)
 

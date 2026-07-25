@@ -16,19 +16,23 @@ from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersMo
 #######################################################################################
 
 
-class PositionsRequest(BaseModel):
-    dish_name: str = Field(min_length=6, max_length=67, pattern=r"(?i)burger")
-    qty: int = Field(ge=0, le=100)
-
-
-#######################################################################################
-#######################################################################################
-
-
 class ResultMessages(StrEnum):
     SUCCESS = "success"
     INVALID_DISH_NAME = "dish not found"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
+
+
+#######################################################################################
+#######################################################################################
+
+
+class PositionRequest(BaseModel):
+    dish_name: str = Field(min_length=6, max_length=67, pattern=r"(?i)burger")
+    qty: int = Field(ge=1, le=100)
+
+
+class PositionResponse(BaseModel):
+    verdict: ResultMessages
 
 
 #######################################################################################
@@ -39,8 +43,8 @@ router = APIRouter()
 
 @router.post("/cart/positions")
 async def manage_position(
-    x_user_id: Annotated[UUID, Header()], payload: PositionsRequest, response: Response
-) -> dict[str, ResultMessages]:
+    x_user_id: Annotated[UUID, Header()], payload: PositionRequest, response: Response
+) -> PositionResponse:
 
     async with pg_session() as session:
         verdict = await add_position(

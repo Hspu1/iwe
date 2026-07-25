@@ -21,17 +21,6 @@ from iwe.shared.postgres.schema import (
 #######################################################################################
 
 
-class TopUpRequest(BaseModel):
-    """should be order_id instead of amount_cents acshually"""
-
-    amount_cents: int = Field(ge=5000)
-    idempotency_key: UUID
-
-
-#######################################################################################
-#######################################################################################
-
-
 class ResultMessages(StrEnum):
     SUCCESS = "success"
     NO_CARD_LAD = "no card lad"
@@ -54,13 +43,28 @@ class ErrCauseConstraint(StrEnum):
 #######################################################################################
 #######################################################################################
 
+
+class TopUpRequest(BaseModel):
+    """should be order_id instead of amount_cents acshually"""
+
+    amount_cents: int = Field(ge=5000)
+    idempotency_key: UUID
+
+
+class TopUpResponse(BaseModel):
+    verdict: ResultMessages
+
+
+#######################################################################################
+#######################################################################################
+
 router = APIRouter()
 
 
 @router.post("/top-up")
 async def create_request(
     x_user_id: Annotated[UUID, Header()], payload: TopUpRequest, response: Response
-) -> ResultMessages:
+) -> TopUpResponse:
 
     async with pg_session() as session:
         verdict = await create_topup_request(
