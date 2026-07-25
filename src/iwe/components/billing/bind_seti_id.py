@@ -95,7 +95,7 @@ async def bind_setup_intent(
         case _:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             return {
-                "huh": ResultMessages.UNSUPPORTED_RESULT,
+                "verdict": ResultMessages.UNSUPPORTED_RESULT,
             }  # for debugging
 
 

@@ -65,6 +65,7 @@ async def set_default_card(
             }
 
         case ResultMessages.CARD_NOT_FOUND:
+            # also triggers when the user is missing
             response.status_code = status.HTTP_404_NOT_FOUND
             return {
                 "verdict": verdict,
@@ -79,7 +80,7 @@ async def set_default_card(
         case _:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             return {
-                "huh": ResultMessages.UNSUPPORTED_RESULT,
+                "verdict": ResultMessages.UNSUPPORTED_RESULT,
             }  # for debugging
 
 

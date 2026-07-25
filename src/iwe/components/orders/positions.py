@@ -6,6 +6,7 @@ from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import literal, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from iwe.core.dependencies import pg_session
@@ -18,8 +19,17 @@ from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersMo
 
 class ResultMessages(StrEnum):
     SUCCESS = "success"
-    INVALID_DISH_NAME = "dish not found"
+    USER_NOT_FOUND = "user not found"
+    DISH_NOT_FOUND = "dish not found"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
+
+
+class ErrCauseState(StrEnum):
+    OP_VIOLATES_FK_CONSTRAINT = "23503"
+
+
+class ErrCauseConstraint(StrEnum):
+    ORDERS_USER_ID_FK = "orders_user_id_fkey"
 
 
 #######################################################################################
@@ -61,7 +71,7 @@ async def manage_position(
                 "verdict": verdict,
             }
 
-        case ResultMessages.INVALID_DISH_NAME:
+        case ResultMessages.USER_NOT_FOUND | ResultMessages.DISH_NOT_FOUND:
             response.status_code = status.HTTP_404_NOT_FOUND
             return {
                 "verdict": verdict,
@@ -70,7 +80,7 @@ async def manage_position(
         case _:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             return {
-                "huh": ResultMessages.UNSUPPORTED_RESULT,
+                "verdict": ResultMessages.UNSUPPORTED_RESULT,
             }  # for debugging
 
 
@@ -92,33 +102,52 @@ async def add_position(
         )
         .returning(OrdersModel.id)
     )
+    try:
+        retrieve_order_id = await session.execute(raw_order_id)
 
-    retrieve_order_id = await session.execute(raw_order_id)
-    order_id = retrieve_order_id.scalar_one_or_none()
+    except IntegrityError as err:
+        driver_err = err.__cause__.__cause__  # wtf
 
-    stmt = (
-        pg_insert(OrderContentsModel)
-        .from_select(
-            ["order_id", "dish_id", "price_cents", "qty"],
-            select(
-                literal(order_id),
-                DishesModel.id,
-                DishesModel.info["price_cents"].as_integer(),
-                literal(qty),
-            ).where(
-                DishesModel.info["name"].as_string() == dish_name,
-                DishesModel.is_available.is_(True),
-            ),
+        match (driver_err.sqlstate, driver_err.constraint_name):
+            case (
+                ErrCauseState.OP_VIOLATES_FK_CONSTRAINT,
+                ErrCauseConstraint.ORDERS_USER_ID_FK,
+            ):
+                return ResultMessages.USER_NOT_FOUND
+
+            case _:
+                print(
+                    f"IntegrityError unexpected shi in add_position: {
+                        driver_err.sqlstate, driver_err.constraint_name
+                    }"
+                )
+                raise err
+
+    else:
+        order_id = retrieve_order_id.scalar_one_or_none()
+        stmt = (
+            pg_insert(OrderContentsModel)
+            .from_select(
+                ["order_id", "dish_id", "price_cents", "qty"],
+                select(
+                    literal(order_id),
+                    DishesModel.id,
+                    DishesModel.info["price_cents"].as_integer(),
+                    literal(qty),
+                ).where(
+                    DishesModel.info["name"].as_string() == dish_name,
+                    DishesModel.is_available.is_(True),
+                ),
+            )
+            .on_conflict_do_update(
+                index_elements=["order_id", "dish_id"],  # composite PK
+                set_={"qty": qty},
+            )
+            .returning(OrderContentsModel.dish_id)
         )
-        .on_conflict_do_update(
-            index_elements=["order_id", "dish_id"],  # composite PK
-            set_={"qty": qty},
-        )
-        .returning(OrderContentsModel.dish_id)
-    )
 
-    res = await session.execute(stmt)
-    if not res.scalar_one_or_none():
-        return ResultMessages.INVALID_DISH_NAME
+        res = await session.execute(stmt)
+        if not res.scalar_one_or_none():
+            return ResultMessages.DISH_NOT_FOUND
 
-    return ResultMessages.SUCCESS
+        return ResultMessages.SUCCESS
