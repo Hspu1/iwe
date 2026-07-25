@@ -200,8 +200,8 @@ class OrdersModel(Base, UUIDv7Mixin, TimestampMixin):
         Index(
             "idx_orders_user_active",
             user_id,
-            postgresql_where=status.in_([1, 3, 4]),
-            # 1 --> DRAFT; 3 --> COOKING; 4 --> DELIVERING
+            postgresql_where=status.in_([2, 3, 4]),
+            # 2 --> FROZEN; 3 --> COOKING; 4 --> DELIVERING
         ),
         Index(
             "idx_orders_user_creating_uniq",
