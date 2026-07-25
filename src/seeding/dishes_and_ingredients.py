@@ -62,6 +62,16 @@ def get_burgers_data() -> list[dict]:
     return records
 
 
+#######################################################################################
+# VALIDATION OUT OF THE BOX
+#######################################################################################
+# overall --> src/iwe/shared/postgres/schema.py
+# dishes (JSONB shi) --> src/iwe/shared/postgres/check_constraints.py
+#######################################################################################
+# VALIDATION OUT OF THE BOX
+#######################################################################################
+
+
 async def seed() -> None:
     ingredients = get_ingredients_data()
     burgers = get_burgers_data()
