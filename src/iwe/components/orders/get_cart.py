@@ -1,0 +1,75 @@
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Header, status
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from iwe.core.dependencies import pg_ro_session
+from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersModel
+
+#######################################################################################
+#######################################################################################
+
+
+class Position(BaseModel):
+    dish_name: str
+    qty: int
+    position_cost_cents: int
+
+
+class CartResponse(BaseModel):
+    items: list[Position]
+    total_cost_cents: int
+
+
+#######################################################################################
+#######################################################################################
+
+
+router = APIRouter()
+
+
+@router.get("/cart", status_code=status.HTTP_200_OK)
+async def get_cart(x_user_id: Annotated[UUID, Header()]) -> CartResponse:
+    async with pg_ro_session() as session:
+        positions = await get_draft_order(session=session, user_id=x_user_id)
+
+    if not positions:
+        return {
+            "items": [],
+            "total_cost_cents": 0,
+        }
+
+    total_cost_cents = sum(item["position_cost_cents"] for item in positions)
+    return {
+        "items": positions,
+        "total_cost_cents": total_cost_cents,
+    }
+
+
+#######################################################################################
+#######################################################################################
+
+
+async def get_draft_order(session: AsyncSession, user_id: UUID) -> list[Position]:
+    stmt = (
+        select(
+            DishesModel.info["name"].as_string().label("dish_name"),
+            OrderContentsModel.qty,
+            (OrderContentsModel.price_cents * OrderContentsModel.qty).label(
+                "position_cost_cents"
+            ),
+        )
+        .select_from(OrdersModel)
+        .join(OrderContentsModel, OrderContentsModel.order_id == OrdersModel.id)
+        .join(DishesModel, DishesModel.id == OrderContentsModel.dish_id)
+        .where(
+            OrdersModel.user_id == user_id,
+            OrdersModel.status == 1,  # OrderStatus.DRAFT
+        )
+    )
+
+    result = await session.execute(stmt)
+    return result.mappings().all()
