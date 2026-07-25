@@ -1,7 +1,8 @@
 from enum import StrEnum
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import exists, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -16,7 +17,6 @@ from iwe.shared.postgres.schema import UserCardsModel
 
 
 class BindRequest(BaseModel):
-    user_id: UUID
     seti_id: str = Field(pattern=r"^seti_[a-zA-Z0-9]{24}$")
     card_brand: str = Field(min_length=3, max_length=20)
     card_last4: str = Field(pattern=r"^\d{4}$")
@@ -54,17 +54,17 @@ router = APIRouter()
 
 @router.post("/bind-card")
 async def bind_setup_intent(
-    request: BindRequest, response: Response
+    x_user_id: Annotated[UUID, Header()], payload: BindRequest, response: Response
 ) -> dict[str, ResultMessages]:
 
     async with pg_session() as session:
         verdict = await manage_card(
             session=session,
-            user_id=request.user_id,
-            seti_id=request.seti_id,
-            card_brand=request.card_brand,
-            card_last4=request.card_last4,
-            make_default=request.make_default,
+            user_id=x_user_id,
+            seti_id=payload.seti_id,
+            card_brand=payload.card_brand,
+            card_last4=payload.card_last4,
+            make_default=payload.make_default,
         )
 
     match verdict:

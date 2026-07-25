@@ -1,9 +1,10 @@
 from enum import StrEnum
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +16,6 @@ from iwe.shared.postgres.schema import UserCardsModel
 
 
 class SetDefaultCardRequest(BaseModel):
-    user_id: UUID
     seti_id: str
 
 
@@ -43,12 +43,14 @@ router = APIRouter()
 
 @router.patch("/cards/set-default")
 async def set_default_card(
-    request: SetDefaultCardRequest, response: Response
+    x_user_id: Annotated[UUID, Header()],
+    payload: SetDefaultCardRequest,
+    response: Response,
 ) -> dict[str, ResultMessages]:
 
     async with pg_session() as session:
         verdict = await update_default_card(
-            session=session, user_id=request.user_id, seti_id=request.seti_id
+            session=session, user_id=x_user_id, seti_id=payload.seti_id
         )
 
     match verdict:
@@ -84,15 +86,16 @@ async def set_default_card(
 async def update_default_card(
     session: AsyncSession, user_id: UUID, seti_id: str
 ) -> ResultMessages:
-    stmt = (
-        select(UserCardsModel)
+
+    lock_stmt = (
+        select(UserCardsModel.seti_id)
         .where(UserCardsModel.user_id == user_id)
         .order_by(UserCardsModel.seti_id)
         .with_for_update(nowait=True)
     )
 
     try:
-        res = await session.execute(stmt)
+        res = await session.execute(lock_stmt)
 
     except DBAPIError as err:
         driver_err = err.__cause__.__cause__  # wtf
@@ -100,22 +103,24 @@ async def update_default_card(
             return ResultMessages.CONCURRENT_LOCK_TRY_AGAIN
 
         print(
-            f"DBAPIError unexpected shi in create_topup_request: {
+            f"DBAPIError unexpected shi in update_default_card: {
                 driver_err.sqlstate, driver_err.constraint_name
             }"
         )
         raise err
 
-    card_found = False
-    for card in res.scalars().all():
-        if card.seti_id == seti_id:
-            card.is_default = True
-            card_found = True
-
-        elif card.is_default:
-            card.is_default = False
-
+    card_found = any(id_ == seti_id for id_ in res.scalars())
     if not card_found:
         return ResultMessages.CARD_NOT_FOUND
 
+    update_stmt = (
+        update(UserCardsModel)
+        .where(
+            UserCardsModel.user_id == user_id,
+            UserCardsModel.is_default != (UserCardsModel.seti_id == seti_id),
+        )
+        .values(is_default=(UserCardsModel.seti_id == seti_id))
+    )
+
+    await session.execute(update_stmt)
     return ResultMessages.SUCCESS

@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Header, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,9 +29,12 @@ router = APIRouter()
 
 
 @router.get("/cards", status_code=status.HTTP_200_OK)
-async def get_cards(user_id: UUID) -> dict[str, list[UserCardSchema]]:
+async def get_cards(
+    x_user_id: Annotated[UUID, Header()],
+) -> dict[str, list[UserCardSchema]]:
+
     async with pg_ro_session() as session:
-        cards = await get_all_cards(session=session, user_id=user_id)
+        cards = await get_all_cards(session=session, user_id=x_user_id)
 
     return {
         "cards": cards,

@@ -1,7 +1,8 @@
 from enum import StrEnum
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -23,7 +24,6 @@ from iwe.shared.postgres.schema import (
 class TopUpRequest(BaseModel):
     """should be order_id instead of amount_cents acshually"""
 
-    user_id: UUID
     amount_cents: int = Field(ge=5000)
     idempotency_key: UUID
 
@@ -58,13 +58,16 @@ router = APIRouter()
 
 
 @router.post("/top-up")
-async def create_request(request: TopUpRequest, response: Response) -> ResultMessages:
+async def create_request(
+    x_user_id: Annotated[UUID, Header()], payload: TopUpRequest, response: Response
+) -> ResultMessages:
+
     async with pg_session() as session:
         verdict = await create_topup_request(
             session=session,
-            user_id=request.user_id,
-            amount_cents=request.amount_cents,
-            idempotency_key=request.idempotency_key,
+            user_id=x_user_id,
+            amount_cents=payload.amount_cents,
+            idempotency_key=payload.idempotency_key,
         )
 
     match verdict:
