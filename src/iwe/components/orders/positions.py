@@ -20,7 +20,7 @@ from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersMo
 
 class ResultMessages(StrEnum):
     SUCCESS = "success"
-    USER_NOT_FOUND = "user not found"
+    ALLEGEDLY_USER_NOT_FOUND = "ALLEGEDLY user not found (how tf?!)"
     DISH_NOT_FOUND = "dish not found"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
@@ -70,7 +70,7 @@ async def manage_position(
             response.status_code = status.HTTP_201_CREATED
             return PositionResponse(verdict=verdict)
 
-        case ResultMessages.USER_NOT_FOUND | ResultMessages.DISH_NOT_FOUND:
+        case ResultMessages.ALLEGEDLY_USER_NOT_FOUND | ResultMessages.DISH_NOT_FOUND:
             response.status_code = status.HTTP_404_NOT_FOUND
             return PositionResponse(verdict=verdict)
 
@@ -89,11 +89,15 @@ async def add_position(
 
     raw_order_id = (
         pg_insert(OrdersModel)
-        .values(user_id=user_id, status=OrderStatus.DRAFT)
+        .values(user_id=user_id, status=OrderStatus.DRAFT.value)
         .on_conflict_do_update(
             index_elements=[OrdersModel.user_id],
-            index_where=literal_column(f"status = {OrderStatus.DRAFT.value}"),
-            set_={OrdersModel.status: OrdersModel.status},
+            index_where=literal_column(
+                f"status = {OrderStatus.DRAFT.value}",
+            ),  # ok
+            set_={
+                OrdersModel.user_id: OrdersModel.user_id,
+            },  # dummy
         )
         .returning(OrdersModel.id)
     )
@@ -112,7 +116,7 @@ async def add_position(
                 ErrCauseState.OP_VIOLATES_FK_CONSTRAINT,
                 ErrCauseConstraint.ORDERS_USER_ID_FK,
             ):
-                return ResultMessages.USER_NOT_FOUND
+                return ResultMessages.ALLEGEDLY_USER_NOT_FOUND
 
             case _:
                 print(

@@ -2,7 +2,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Header, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +15,8 @@ from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersMo
 
 
 class Position(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     dish_name: str
     qty: int

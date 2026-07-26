@@ -85,7 +85,7 @@ async def process_freeze(
         select(OrdersModel.id)
         .where(
             OrdersModel.user_id == user_id,
-            OrdersModel.status == OrderStatus.DRAFT,
+            OrdersModel.status == OrderStatus.DRAFT.value,
         )
         .with_for_update()
     )
@@ -111,7 +111,7 @@ async def process_freeze(
     await session.execute(
         update(OrdersModel)
         .where(OrdersModel.id == order_id)
-        .values(status=OrderStatus.FROZEN)
+        .values(status=OrderStatus.FROZEN.value)
     )
 
     aggregated_dishes = (

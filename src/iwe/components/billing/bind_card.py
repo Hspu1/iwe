@@ -5,7 +5,7 @@ from uuid import UUID
 import asyncpg
 from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import exists, select, update
+from sqlalchemy import func, literal, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,21 +19,16 @@ from iwe.shared.postgres.schema import UserCardsModel
 
 class ResultMessages(StrEnum):
     SUCCESS = "success"
-    USER_NOT_FOUND = "user not found"
-    THIS_CARD_ALRDY_BOUND = "this card alrdy bound"
-    USER_ALRDY_HAS_DEFAULT_CARD = "user alrdy has a default card"
+    ALLEGEDLY_USER_NOT_FOUND = "ALLEGEDLY user not found (how tf?!)"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
 
 class ErrCauseState(StrEnum):
     OP_VIOLATES_FK_CONSTRAINT = "23503"
-    DUPLICATE_KEY = "23505"
 
 
 class ErrCauseConstraint(StrEnum):
     USER_CARDS_USER_ID_FK = "user_cards_user_id_fkey"
-    UQ_USER_CARDS_SETI_ID = "uq_user_cards_seti_id"
-    UQ_USER_CARDS_USER_DEFAULT_CARD = "uq_user_cards_user_default_card"
 
 
 #######################################################################################
@@ -77,15 +72,8 @@ async def bind_setup_intent(
             response.status_code = status.HTTP_201_CREATED
             return BindSetiResponse(verdict=verdict)
 
-        case ResultMessages.USER_NOT_FOUND:
+        case ResultMessages.ALLEGEDLY_USER_NOT_FOUND:
             response.status_code = status.HTTP_404_NOT_FOUND
-            return BindSetiResponse(verdict=verdict)
-
-        case (
-            ResultMessages.THIS_CARD_ALRDY_BOUND
-            | ResultMessages.USER_ALRDY_HAS_DEFAULT_CARD
-        ):
-            response.status_code = status.HTTP_409_CONFLICT
             return BindSetiResponse(verdict=verdict)
 
         case _:
@@ -112,26 +100,48 @@ async def manage_card(  # noqa PLR0913
             .where(
                 UserCardsModel.user_id == user_id,
                 UserCardsModel.is_default.is_(True),
+                UserCardsModel.seti_id != seti_id,
             )
             .values(is_default=False)
         )
-    else:
-        has_cards = await session.execute(
-            select(exists().where(UserCardsModel.user_id == user_id))
-        )
-        if not has_cards.scalar_one():
-            make_default = True
 
-    stmt = pg_insert(UserCardsModel).values(
-        user_id=user_id,
-        seti_id=seti_id,
-        card_brand=card_brand,
-        card_last4=card_last4,
-        is_default=make_default,
+    insert_stmt = pg_insert(UserCardsModel).from_select(
+        [
+            UserCardsModel.user_id,
+            UserCardsModel.seti_id,
+            UserCardsModel.card_brand,
+            UserCardsModel.card_last4,
+            UserCardsModel.is_default,
+        ],
+        select(
+            literal(user_id),
+            literal(seti_id),
+            literal(card_brand),
+            literal(card_last4),
+            func.coalesce(
+                literal(make_default or None),
+                select(func.count(UserCardsModel.seti_id) == 0)
+                .where(UserCardsModel.user_id == user_id)
+                .scalar_subquery(),
+            ),
+        ),
+    )
+
+    stmt_manage_card = insert_stmt.on_conflict_do_update(
+        index_elements=[UserCardsModel.seti_id],
+        set_={
+            UserCardsModel.card_brand: insert_stmt.excluded.card_brand,
+            UserCardsModel.card_last4: insert_stmt.excluded.card_last4,
+            UserCardsModel.is_default: insert_stmt.excluded.is_default,
+        },
+        where=(
+            insert_stmt.excluded.is_default.is_(True)
+            | (UserCardsModel.is_default.is_(False))
+        ),
     )
 
     try:
-        await session.execute(stmt)
+        await session.execute(stmt_manage_card)
 
     except IntegrityError as err:
         driver_err: asyncpg.PostgresError | None = (
@@ -145,27 +155,11 @@ async def manage_card(  # noqa PLR0913
                 ErrCauseState.OP_VIOLATES_FK_CONSTRAINT,
                 ErrCauseConstraint.USER_CARDS_USER_ID_FK,
             ):
-                return ResultMessages.USER_NOT_FOUND
-
-            case (
-                ErrCauseState.DUPLICATE_KEY,
-                ErrCauseConstraint.UQ_USER_CARDS_SETI_ID,
-            ):
-                # also triggers when 23503 (user not found) and 23505 on seti-id
-                # and
-                # also triggers when 23505 fires
-                # for both user_id and seti_id simultaneously
-                return ResultMessages.THIS_CARD_ALRDY_BOUND
-
-            case (
-                ErrCauseState.DUPLICATE_KEY,
-                ErrCauseConstraint.UQ_USER_CARDS_USER_DEFAULT_CARD,
-            ):
-                return ResultMessages.USER_ALRDY_HAS_DEFAULT_CARD
+                return ResultMessages.ALLEGEDLY_USER_NOT_FOUND
 
             case _:
                 print(
-                    f"IntegrityError unexpected shi in bind_seti_id: {
+                    f"IntegrityError unexpected shi in manage_card: {
                         sqlstate, constraint
                     }"
                 )

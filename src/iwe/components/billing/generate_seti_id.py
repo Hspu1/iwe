@@ -23,4 +23,6 @@ async def generate_setup_intent() -> SetupIntentResponse:
     """Frontend's business actually (ts a mock)"""
 
     intent = await stripe_client.setup_intents.create_async()
-    return SetupIntentResponse(seti_id=intent.id)
+    return {
+        "seti-id": intent.id,
+    }

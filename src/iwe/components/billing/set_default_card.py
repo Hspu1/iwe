@@ -76,7 +76,7 @@ async def update_default_card(
     lock_stmt = (
         select(UserCardsModel.seti_id)
         .where(UserCardsModel.user_id == user_id)
-        .order_by(UserCardsModel.seti_id)
+        .order_by(UserCardsModel.seti_id)  # no deadlocking
         .with_for_update()
     )
 
@@ -86,14 +86,22 @@ async def update_default_card(
     if not card_found:
         return ResultMessages.CARD_NOT_FOUND
 
-    update_stmt = (
+    await session.execute(
         update(UserCardsModel)
         .where(
             UserCardsModel.user_id == user_id,
-            UserCardsModel.is_default != (UserCardsModel.seti_id == seti_id),
+            UserCardsModel.is_default.is_(True),
+            UserCardsModel.seti_id != seti_id,
         )
-        .values(is_default=(UserCardsModel.seti_id == seti_id))
+        .values(is_default=False)
+    )
+    await session.execute(
+        update(UserCardsModel)
+        .where(
+            UserCardsModel.user_id == user_id,
+            UserCardsModel.seti_id == seti_id,
+        )
+        .values(is_default=True)
     )
 
-    await session.execute(update_stmt)
     return ResultMessages.SUCCESS

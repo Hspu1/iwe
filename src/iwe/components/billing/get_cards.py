@@ -2,7 +2,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Header, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +14,8 @@ from iwe.shared.postgres.schema import UserCardsModel
 
 
 class UserCardSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     user_id: UUID
     is_default: bool
     card_last4: str

@@ -114,16 +114,16 @@ async def create_topup_request(
 
     stmt_top_up = pg_insert(WalletTopUpsModel).from_select(
         [
-            WalletTopUpsModel.user_id.name,
-            WalletTopUpsModel.idempotency_key.name,
-            WalletTopUpsModel.amount_cents.name,
-            WalletTopUpsModel.status.name,
+            WalletTopUpsModel.user_id,
+            WalletTopUpsModel.idempotency_key,
+            WalletTopUpsModel.amount_cents,
+            WalletTopUpsModel.status,
         ],
         select(
             literal(user_id),
             literal(idempotency_key),
             literal(amount_cents),
-            literal(TopUpStatus.PENDING),
+            literal(TopUpStatus.PENDING.value),
         )
         .select_from(UserCardsModel)
         .where(UserCardsModel.user_id == user_id),
@@ -152,15 +152,15 @@ async def create_topup_request(
         )
         raise err
 
-    event_type = OutboxEventType.HOLD_FUNDS_REQUESTED
+    event_type = OutboxEventType.HOLD_FUNDS_REQUESTED.value
     payload = func.json_build_object(
-        WalletTopUpsModel.user_id.name,
+        literal(WalletTopUpsModel.user_id.name),
         user_id,
-        WalletTopUpsModel.amount_cents.name,
+        literal(WalletTopUpsModel.amount_cents.name),
         amount_cents,
-        UserCardsModel.seti_id.name,
+        literal(UserCardsModel.seti_id.name),
         card_seti_id,
-        WalletTopUpsModel.idempotency_key.name,
+        literal(WalletTopUpsModel.idempotency_key.name),
         idempotency_key,
     )
 
