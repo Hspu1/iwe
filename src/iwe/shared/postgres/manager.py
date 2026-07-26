@@ -18,7 +18,9 @@ from iwe.core.exceptions import PostgresNotReachableError
 
 
 def orjson_dumps(data: Any) -> bytes:
-    return orjson.dumps(data, option=orjson.OPT_SERIALIZE_UUID | orjson.OPT_NON_STR_KEYS)
+    return orjson.dumps(
+        data, option=orjson.OPT_SERIALIZE_UUID | orjson.OPT_NON_STR_KEYS
+    ).decode()
 
 
 def orjson_loads(data: str | bytes) -> Any:
