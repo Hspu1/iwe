@@ -156,7 +156,7 @@ async def process_freeze(
     )
 
     insert_stmt = pg_insert(IngredientsSnapshotModel).from_select(
-        ["order_id", "snapshot"],
+        [IngredientsSnapshotModel.order_id, IngredientsSnapshotModel.snapshot],
         select(
             literal(order_id),
             func.jsonb_object_agg(weighted_summed.c.ingredient, weighted_summed.c.total),
@@ -165,7 +165,7 @@ async def process_freeze(
 
     snapshot_stmt = insert_stmt.on_conflict_do_update(
         index_elements=[IngredientsSnapshotModel.order_id],
-        set_={"snapshot": insert_stmt.excluded.snapshot},
+        set_={IngredientsSnapshotModel.snapshot: insert_stmt.excluded.snapshot},
     )
 
     await session.execute(snapshot_stmt)

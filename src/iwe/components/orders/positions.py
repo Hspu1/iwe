@@ -125,26 +125,27 @@ async def add_position(
 
     else:
         order_id = retrieve_order_id.scalar_one_or_none()
-        stmt = (
-            pg_insert(OrderContentsModel)
-            .from_select(
-                ["order_id", "dish_id", "price_cents", "qty"],
-                select(
-                    literal(order_id),
-                    DishesModel.id,
-                    DishesModel.info["price_cents"].as_integer(),
-                    literal(qty),
-                ).where(
-                    DishesModel.info["name"].as_string() == dish_name,
-                    DishesModel.is_available.is_(True),
-                ),
-            )
-            .on_conflict_do_update(
-                index_elements=["order_id", "dish_id"],  # composite PK
-                set_={"qty": qty},
-            )
-            .returning(OrderContentsModel.dish_id)
+
+        insert_stmt = pg_insert(OrderContentsModel).from_select(
+            ["order_id", "dish_id", "price_cents", "qty"],
+            select(
+                literal(order_id),
+                DishesModel.id,
+                DishesModel.info["price_cents"].as_integer(),
+                literal(qty),
+            ).where(
+                DishesModel.info["name"].as_string() == dish_name,
+                DishesModel.is_available.is_(True),
+            ),
         )
+
+        stmt = insert_stmt.on_conflict_do_update(
+            index_elements=[
+                OrderContentsModel.order_id,
+                OrderContentsModel.dish_id,
+            ],  # composite PK
+            set_={OrderContentsModel.qty: insert_stmt.excluded.qty},
+        ).returning(OrderContentsModel.dish_id)
 
         res = await session.execute(stmt)
         if not res.scalar_one_or_none():
