@@ -2,6 +2,7 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
+import asyncpg
 from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, literal, select
@@ -132,13 +133,11 @@ async def create_topup_request(
         await session.execute(stmt_top_up)
 
     except IntegrityError as err:
-        driver_err = err.orig.__cause__ if err.orig else None
-        sqlstate: str = (
-            getattr(driver_err, "sqlstate", "unknown") if driver_err else "unknown"
-        )
-        constraint: str = (
-            getattr(driver_err, "constraint_name", "none") if driver_err else "none"
-        )
+        driver_err: asyncpg.PostgresError | None = (
+            err.orig.__cause__ if err.orig else None
+        )  # wtf
+        sqlstate: str = driver_err.sqlstate if driver_err else "unknown"
+        constraint: str = (driver_err.constraint_name if driver_err else None) or "none"
 
         if (
             sqlstate == ErrCauseState.DUPLICATE_KEY

@@ -2,9 +2,10 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
+import asyncpg
 from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import literal, select, text
+from sqlalchemy import literal, literal_column, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -91,8 +92,8 @@ async def add_position(
         .values(user_id=user_id, status=OrderStatus.DRAFT)
         .on_conflict_do_update(
             index_elements=[OrdersModel.user_id],
-            index_where=text("status = 1"),  # OrderStatus.DRAFT
-            set_={"status": OrdersModel.status},
+            index_where=literal_column(f"status = {OrderStatus.DRAFT.value}"),
+            set_={OrdersModel.status: OrdersModel.status},
         )
         .returning(OrdersModel.id)
     )
@@ -100,13 +101,11 @@ async def add_position(
         retrieve_order_id = await session.execute(raw_order_id)
 
     except IntegrityError as err:
-        driver_err = err.orig.__cause__ if err.orig else None
-        sqlstate: str = (
-            getattr(driver_err, "sqlstate", "unknown") if driver_err else "unknown"
-        )
-        constraint: str = (
-            getattr(driver_err, "constraint_name", "none") if driver_err else "none"
-        )
+        driver_err: asyncpg.PostgresError | None = (
+            err.orig.__cause__ if err.orig else None
+        )  # wtf
+        sqlstate: str = driver_err.sqlstate if driver_err else "unknown"
+        constraint: str = (driver_err.constraint_name if driver_err else None) or "none"
 
         match (sqlstate, constraint):
             case (
@@ -127,7 +126,12 @@ async def add_position(
         order_id = retrieve_order_id.scalar_one_or_none()
 
         insert_stmt = pg_insert(OrderContentsModel).from_select(
-            ["order_id", "dish_id", "price_cents", "qty"],
+            [
+                OrderContentsModel.order_id,
+                OrderContentsModel.dish_id,
+                OrderContentsModel.price_cents,
+                OrderContentsModel.qty,
+            ],
             select(
                 literal(order_id),
                 DishesModel.id,
