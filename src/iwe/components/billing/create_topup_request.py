@@ -6,7 +6,7 @@ from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.exc import DBAPIError, IntegrityError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from iwe.core.dependencies import pg_session
@@ -26,13 +26,11 @@ class ResultMessages(StrEnum):
     NO_CARD_LAD = "no card lad"
     HOLD_THE_FUCK_UP = "hold the fuck up"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
-    CONCURRENT_LOCK_TRY_AGAIN = "oopsie smth went wrong, try again"
 
 
 class ErrCauseState(StrEnum):
     OP_VIOLATES_FK_CONSTRAINT = "23503"
     DUPLICATE_KEY = "23505"
-    LOCK_NOT_AVAILABLE = "55P03"
 
 
 class ErrCauseConstraint(StrEnum):
@@ -77,34 +75,20 @@ async def create_request(
     match verdict:
         case ResultMessages.SUCCESS:
             response.status_code = status.HTTP_201_CREATED
-            return {
-                "verdict": verdict,
-            }
+            return TopUpResponse(verdict=verdict)
 
-        case ResultMessages.CONCURRENT_LOCK_TRY_AGAIN:
-            response.status_code = status.HTTP_409_CONFLICT
-            return {
-                "verdict": verdict,
-            }
+        case ResultMessages.HOLD_THE_FUCK_UP:
+            response.status_code = status.HTTP_202_ACCEPTED
+            return TopUpResponse(verdict=verdict)
 
         case ResultMessages.NO_CARD_LAD:
             # also triggers when the user is missing
             response.status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
-            return {
-                "verdict": verdict,
-            }
-
-        case ResultMessages.HOLD_THE_FUCK_UP:
-            response.status_code = status.HTTP_202_ACCEPTED
-            return {
-                "verdict": verdict,
-            }
+            return TopUpResponse(verdict=verdict)
 
         case _:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            return {
-                "verdict": ResultMessages.UNSUPPORTED_RESULT,
-            }  # for debugging
+            return TopUpResponse(verdict=ResultMessages.UNSUPPORTED_RESULT)
 
 
 #######################################################################################
@@ -118,24 +102,11 @@ async def create_topup_request(
     stmt_lock_card = (
         select(UserCardsModel.seti_id)
         .where(UserCardsModel.user_id == user_id)
-        .with_for_update(nowait=True)
+        .with_for_update()
     )
 
-    try:
-        res_card = await session.execute(stmt_lock_card)
-        card_seti_id = res_card.scalar_one_or_none()
-
-    except DBAPIError as err:
-        driver_err = err.__cause__.__cause__  # wtf
-        if driver_err.sqlstate == ErrCauseState.LOCK_NOT_AVAILABLE:
-            return ResultMessages.CONCURRENT_LOCK_TRY_AGAIN
-
-        print(
-            f"DBAPIError unexpected shi in create_topup_request: {
-                driver_err.sqlstate, driver_err.constraint_name
-            }"
-        )
-        raise err
+    res_card = await session.execute(stmt_lock_card)
+    card_seti_id = res_card.scalar_one_or_none()
 
     if not card_seti_id:
         return ResultMessages.NO_CARD_LAD
@@ -161,18 +132,23 @@ async def create_topup_request(
         await session.execute(stmt_top_up)
 
     except IntegrityError as err:
-        driver_err = err.__cause__.__cause__  # wtf
+        driver_err = err.orig.__cause__ if err.orig else None
+        sqlstate: str = (
+            getattr(driver_err, "sqlstate", "unknown") if driver_err else "unknown"
+        )
+        constraint: str = (
+            getattr(driver_err, "constraint_name", "none") if driver_err else "none"
+        )
 
         if (
-            driver_err.sqlstate == ErrCauseState.DUPLICATE_KEY
-            and driver_err.constraint_name
-            == ErrCauseConstraint.UQ_WALLET_TOP_UPS_USER_IDEMPOTENCY
+            sqlstate == ErrCauseState.DUPLICATE_KEY
+            and constraint == ErrCauseConstraint.UQ_WALLET_TOP_UPS_USER_IDEMPOTENCY
         ):
             return ResultMessages.HOLD_THE_FUCK_UP
 
         print(
             f"IntegrityError unexpected shi in create_topup_request: {
-                driver_err.sqlstate, driver_err.constraint_name
+                sqlstate, constraint
             }"
         )
         raise err

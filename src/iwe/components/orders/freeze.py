@@ -24,17 +24,13 @@ from iwe.shared.postgres.schema import (
 class ResultMessages(StrEnum):
     SUCCESS = "success"
     DRAFT_NOT_FOUND = "draft order not found"
+    CART_EMPTY = "cart is empty"
     ITEMS_UNAVAILABLE = "some items in cart are unavailable"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
 
 #######################################################################################
 #######################################################################################
-
-
-class UnavailableDish(BaseModel):
-    id: UUID
-    name: str
 
 
 class FreezeResponse(BaseModel):
@@ -44,6 +40,7 @@ class FreezeResponse(BaseModel):
 
 #######################################################################################
 #######################################################################################
+
 
 router = APIRouter()
 
@@ -61,28 +58,19 @@ async def freeze_cart(
     match verdict:
         case ResultMessages.SUCCESS:
             response.status_code = status.HTTP_200_OK
-            return {
-                "verdict": verdict,
-            }
+            return FreezeResponse(verdict=verdict)
 
-        case ResultMessages.DRAFT_NOT_FOUND:
+        case ResultMessages.CART_EMPTY | ResultMessages.DRAFT_NOT_FOUND:
             response.status_code = status.HTTP_404_NOT_FOUND
-            return {
-                "verdict": verdict,
-            }
+            return FreezeResponse(verdict=verdict)
 
         case ResultMessages.ITEMS_UNAVAILABLE:
             response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-            return {
-                "verdict": verdict,
-                "unavailable_items": unavailable_list,
-            }
+            return FreezeResponse(verdict=verdict, unavailable_items=unavailable_list)
 
         case _:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            return {
-                "verdict": ResultMessages.UNSUPPORTED_RESULT,
-            }  # for debugging
+            return FreezeResponse(verdict=ResultMessages.UNSUPPORTED_RESULT)
 
 
 #######################################################################################
@@ -93,34 +81,33 @@ async def process_freeze(
     session: AsyncSession, user_id: UUID
 ) -> tuple[ResultMessages, list[str] | None]:
 
-    check_order = (
-        select(OrdersModel.id, DishesModel.info["name"].as_string())
-        .select_from(OrdersModel)
-        .join(
-            OrderContentsModel,
-            OrderContentsModel.order_id == OrdersModel.id,
-            isouter=True,
-        )
-        .join(
-            DishesModel,
-            (DishesModel.id == OrderContentsModel.dish_id)
-            & (DishesModel.is_available.is_(False)),
-            isouter=True,
-        )
+    locked_order = await session.execute(
+        select(OrdersModel.id)
         .where(
             OrdersModel.user_id == user_id,
             OrdersModel.status == OrderStatus.DRAFT,
         )
+        .with_for_update()
     )
+    order_id: UUID | None = locked_order.scalar_one_or_none()
 
-    result_order = await session.execute(check_order)
-    if not (rows := result_order.all()):
+    if not order_id:
         return ResultMessages.DRAFT_NOT_FOUND, None
 
-    if unavailable_items := [row[1] for row in rows if row[1] is not None]:
+    check_availability = (
+        select(DishesModel.info["name"].as_string(), DishesModel.is_available)
+        .select_from(OrderContentsModel)
+        .join(DishesModel, DishesModel.id == OrderContentsModel.dish_id)
+        .where(OrderContentsModel.order_id == order_id)
+    )
+
+    result_rows = (await session.execute(check_availability)).all()
+    if not result_rows:
+        return ResultMessages.CART_EMPTY, None
+
+    if unavailable_items := [row[0] for row in result_rows if not row[1]]:
         return ResultMessages.ITEMS_UNAVAILABLE, unavailable_items
 
-    order_id = rows[0][0]
     await session.execute(
         update(OrdersModel)
         .where(OrdersModel.id == order_id)

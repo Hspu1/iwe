@@ -12,9 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from iwe.core.dependencies import pg_session
 from iwe.shared.postgres.schema import UserCardsModel
 
+#######################################################################################
+#######################################################################################
 
-#######################################################################################
-#######################################################################################
+
 class ResultMessages(StrEnum):
     SUCCESS = "success"
     USER_NOT_FOUND = "user not found"
@@ -73,30 +74,22 @@ async def bind_setup_intent(
     match verdict:
         case ResultMessages.SUCCESS:
             response.status_code = status.HTTP_201_CREATED
-            return {
-                "verdict": verdict,
-            }
+            return BindSetiResponse(verdict=verdict)
 
         case ResultMessages.USER_NOT_FOUND:
             response.status_code = status.HTTP_404_NOT_FOUND
-            return {
-                "verdict": verdict,
-            }
+            return BindSetiResponse(verdict=verdict)
 
         case (
             ResultMessages.THIS_CARD_ALRDY_BOUND
             | ResultMessages.USER_ALRDY_HAS_DEFAULT_CARD
         ):
             response.status_code = status.HTTP_409_CONFLICT
-            return {
-                "verdict": verdict,
-            }
+            return BindSetiResponse(verdict=verdict)
 
         case _:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            return {
-                "verdict": ResultMessages.UNSUPPORTED_RESULT,
-            }  # for debugging
+            return BindSetiResponse(verdict=ResultMessages.UNSUPPORTED_RESULT)
 
 
 #######################################################################################
@@ -140,9 +133,15 @@ async def manage_card(  # noqa PLR0913
         await session.execute(stmt)
 
     except IntegrityError as err:
-        driver_err = err.__cause__.__cause__  # wtf
+        driver_err = err.orig.__cause__ if err.orig else None
+        sqlstate: str = (
+            getattr(driver_err, "sqlstate", "unknown") if driver_err else "unknown"
+        )
+        constraint: str = (
+            getattr(driver_err, "constraint_name", "none") if driver_err else "none"
+        )
 
-        match (driver_err.sqlstate, driver_err.constraint_name):
+        match (sqlstate, constraint):
             case (
                 ErrCauseState.OP_VIOLATES_FK_CONSTRAINT,
                 ErrCauseConstraint.USER_CARDS_USER_ID_FK,
@@ -168,7 +167,7 @@ async def manage_card(  # noqa PLR0913
             case _:
                 print(
                     f"IntegrityError unexpected shi in bind_seti_id: {
-                        driver_err.sqlstate, driver_err.constraint_name
+                        sqlstate, constraint
                     }"
                 )
                 raise err

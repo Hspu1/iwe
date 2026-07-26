@@ -7,7 +7,7 @@ from .get_cards import router as get_cards
 from .set_default_card import router as set_default_card
 
 billing_router = APIRouter(prefix="/billing", tags=["billing"])
-service_router = APIRouter(prefix="/service", tags=["service"])
+service_router = APIRouter(prefix="/service", tags=["[service]"])
 
 billing_router.include_router(bind_seti_id)
 billing_router.include_router(create_topup_request)

@@ -67,21 +67,15 @@ async def manage_position(
     match verdict:
         case ResultMessages.SUCCESS:
             response.status_code = status.HTTP_201_CREATED
-            return {
-                "verdict": verdict,
-            }
+            return PositionResponse(verdict=verdict)
 
         case ResultMessages.USER_NOT_FOUND | ResultMessages.DISH_NOT_FOUND:
             response.status_code = status.HTTP_404_NOT_FOUND
-            return {
-                "verdict": verdict,
-            }
+            return PositionResponse(verdict=verdict)
 
         case _:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            return {
-                "verdict": ResultMessages.UNSUPPORTED_RESULT,
-            }  # for debugging
+            return PositionResponse(verdict=ResultMessages.UNSUPPORTED_RESULT)
 
 
 #######################################################################################
@@ -106,9 +100,15 @@ async def add_position(
         retrieve_order_id = await session.execute(raw_order_id)
 
     except IntegrityError as err:
-        driver_err = err.__cause__.__cause__  # wtf
+        driver_err = err.orig.__cause__ if err.orig else None
+        sqlstate: str = (
+            getattr(driver_err, "sqlstate", "unknown") if driver_err else "unknown"
+        )
+        constraint: str = (
+            getattr(driver_err, "constraint_name", "none") if driver_err else "none"
+        )
 
-        match (driver_err.sqlstate, driver_err.constraint_name):
+        match (sqlstate, constraint):
             case (
                 ErrCauseState.OP_VIOLATES_FK_CONSTRAINT,
                 ErrCauseConstraint.ORDERS_USER_ID_FK,
@@ -118,7 +118,7 @@ async def add_position(
             case _:
                 print(
                     f"IntegrityError unexpected shi in add_position: {
-                        driver_err.sqlstate, driver_err.constraint_name
+                        sqlstate, constraint
                     }"
                 )
                 raise err

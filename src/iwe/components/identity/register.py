@@ -28,9 +28,7 @@ async def register() -> RegisterResponse:
     async with pg_session() as session:
         user_id: UUID = await create_user_with_wallet(session=session)
 
-    return {
-        "user_id": user_id,
-    }
+    return RegisterResponse(user_id=user_id)
 
 
 #######################################################################################

@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Header, status
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from iwe.core.dependencies import pg_ro_session
@@ -14,6 +15,7 @@ from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersMo
 
 
 class Position(BaseModel):
+    id: UUID
     dish_name: str
     qty: int
     position_cost_cents: int
@@ -34,28 +36,31 @@ router = APIRouter()
 @router.get("/cart", status_code=status.HTTP_200_OK)
 async def get_cart(x_user_id: Annotated[UUID, Header()]) -> CartResponse:
     async with pg_ro_session() as session:
-        positions = await get_cart_positions(session=session, user_id=x_user_id)
+        positions_raw = await get_cart_positions(session=session, user_id=x_user_id)
 
-    if not positions:
-        return {
-            "items": [],
-            "total_cost_cents": 0,
-        }
+    if not positions_raw:
+        return CartResponse(
+            items=[],
+            total_cost_cents=0,
+        )
 
-    total_cost_cents = sum(item["position_cost_cents"] for item in positions)
-    return {
-        "items": positions,
-        "total_cost_cents": total_cost_cents,
-    }
+    total_cost_cents = sum(item["position_cost_cents"] for item in positions_raw)
+    items = [Position.model_validate(item) for item in positions_raw]
+
+    return CartResponse(
+        items=items,
+        total_cost_cents=total_cost_cents,
+    )
 
 
 #######################################################################################
 #######################################################################################
 
 
-async def get_cart_positions(session: AsyncSession, user_id: UUID) -> list[Position]:
+async def get_cart_positions(session: AsyncSession, user_id: UUID) -> list[RowMapping]:
     stmt = (
         select(
+            DishesModel.id,
             DishesModel.info["name"].as_string().label("dish_name"),
             OrderContentsModel.qty,
             (OrderContentsModel.price_cents * OrderContentsModel.qty).label(
