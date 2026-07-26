@@ -14,7 +14,6 @@ class OrderStatus(IntEnum):
     DELIVERING = 4
     COMPLETED = 5
     CANCELLED = 6
-    FAILED = 7
 
 
 class OutboxEventType(IntEnum):

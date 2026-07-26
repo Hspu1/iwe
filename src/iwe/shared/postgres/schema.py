@@ -168,6 +168,15 @@ class IngredientsModel(Base, UUIDv7Mixin):
     )
 
 
+class IngredientsSnapshotModel(Base):
+    __tablename__ = "ingredients_snapshots"
+
+    order_id: Mapped[UUID] = mapped_column(
+        Uuid, ForeignKey("orders.id", ondelete="RESTRICT"), primary_key=True, sort_order=1
+    )
+    snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False, sort_order=2)
+
+
 class WarehouseModel(Base):
     # !!! SET FILLFACTOR IN ALEMBIC SCRIPTS !!! --> 67%
     __tablename__ = "warehouse"

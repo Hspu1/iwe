@@ -34,7 +34,7 @@ router = APIRouter()
 @router.get("/cart", status_code=status.HTTP_200_OK)
 async def get_cart(x_user_id: Annotated[UUID, Header()]) -> CartResponse:
     async with pg_ro_session() as session:
-        positions = await get_draft_order(session=session, user_id=x_user_id)
+        positions = await get_cart_positions(session=session, user_id=x_user_id)
 
     if not positions:
         return {
@@ -53,7 +53,7 @@ async def get_cart(x_user_id: Annotated[UUID, Header()]) -> CartResponse:
 #######################################################################################
 
 
-async def get_draft_order(session: AsyncSession, user_id: UUID) -> list[Position]:
+async def get_cart_positions(session: AsyncSession, user_id: UUID) -> list[Position]:
     stmt = (
         select(
             DishesModel.info["name"].as_string().label("dish_name"),
