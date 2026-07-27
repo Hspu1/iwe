@@ -4,7 +4,7 @@
 [project]
 name = "iwe"
 version = "0.1.0"
-description = "RDBMS maxxing for a highload FoodTech"
+description = "whatcha wanna know huh"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
