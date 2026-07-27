@@ -35,7 +35,7 @@ class ResultMessages(StrEnum):
 
 class FreezeResponse(BaseModel):
     verdict: ResultMessages
-    unavailable_items: list[str] | None = None
+    unavailable_items: list[dict[str, str]] | None = None
 
 
 #######################################################################################
@@ -79,7 +79,7 @@ async def freeze_cart(
 
 async def process_freeze(
     session: AsyncSession, user_id: UUID
-) -> tuple[ResultMessages, list[str] | None]:
+) -> tuple[ResultMessages, list[dict[str, str]] | None]:
 
     locked_order = await session.execute(
         select(OrdersModel.id)
@@ -95,7 +95,11 @@ async def process_freeze(
         return ResultMessages.DRAFT_NOT_FOUND, None
 
     check_availability = (
-        select(DishesModel.info["name"].as_string(), DishesModel.is_available)
+        select(
+            DishesModel.id,
+            DishesModel.info["name"].as_string(),
+            DishesModel.is_available,
+        )
         .select_from(OrderContentsModel)
         .join(DishesModel, DishesModel.id == OrderContentsModel.dish_id)
         .where(OrderContentsModel.order_id == order_id)
@@ -105,7 +109,9 @@ async def process_freeze(
     if not result_rows:
         return ResultMessages.CART_EMPTY, None
 
-    if unavailable_items := [row[0] for row in result_rows if not row[1]]:
+    if unavailable_items := [
+        {"dish_id": str(row[0]), "name": row[1]} for row in result_rows if not row[2]
+    ]:
         return ResultMessages.ITEMS_UNAVAILABLE, unavailable_items
 
     await session.execute(

@@ -17,7 +17,7 @@ from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersMo
 class Position(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: UUID
+    dish_id: UUID
     dish_name: str
     qty: int
     position_cost_cents: int
@@ -62,7 +62,7 @@ async def get_cart(x_user_id: Annotated[UUID, Header()]) -> CartResponse:
 async def get_cart_positions(session: AsyncSession, user_id: UUID) -> list[RowMapping]:
     stmt = (
         select(
-            DishesModel.id,
+            DishesModel.id.label("dish_id"),
             DishesModel.info["name"].as_string().label("dish_name"),
             OrderContentsModel.qty,
             (OrderContentsModel.price_cents * OrderContentsModel.qty).label(
