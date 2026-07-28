@@ -21,7 +21,7 @@ from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersMo
 class ResultMessages(StrEnum):
     SUCCESS = "success"
     ALLEGEDLY_USER_NOT_FOUND = "ALLEGEDLY user not found (how tf?!)"
-    DISH_NOT_FOUND = "dish not found"
+    ALLEGEDLY_DISH_NOT_FOUND = "ALLEGEDLY dish not found (how tf?!)"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
 
@@ -70,7 +70,10 @@ async def manage_position(
             response.status_code = status.HTTP_201_CREATED
             return PositionResponse(verdict=verdict)
 
-        case ResultMessages.ALLEGEDLY_USER_NOT_FOUND | ResultMessages.DISH_NOT_FOUND:
+        case (
+            ResultMessages.ALLEGEDLY_USER_NOT_FOUND
+            | ResultMessages.ALLEGEDLY_DISH_NOT_FOUND
+        ):
             response.status_code = status.HTTP_404_NOT_FOUND
             return PositionResponse(verdict=verdict)
 
@@ -157,6 +160,6 @@ async def add_position(
 
         add_pos_res = await session.execute(add_pos_stmt)
         if not add_pos_res.scalar_one_or_none():
-            return ResultMessages.DISH_NOT_FOUND
+            return ResultMessages.ALLEGEDLY_DISH_NOT_FOUND
 
         return ResultMessages.SUCCESS

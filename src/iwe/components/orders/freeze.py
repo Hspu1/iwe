@@ -60,7 +60,7 @@ async def freeze_cart(
             response.status_code = status.HTTP_200_OK
             return FreezeResponse(verdict=verdict)
 
-        case ResultMessages.CART_EMPTY | ResultMessages.DRAFT_NOT_FOUND:
+        case ResultMessages.DRAFT_NOT_FOUND | ResultMessages.CART_EMPTY:
             response.status_code = status.HTTP_404_NOT_FOUND
             return FreezeResponse(verdict=verdict)
 
@@ -122,12 +122,6 @@ async def process_freeze(
     ]:
         return ResultMessages.ITEMS_UNAVAILABLE, unavailable_items
 
-    await session.execute(
-        update(OrdersModel)
-        .where(OrdersModel.id == order_id)
-        .values(status=OrderStatus.FROZEN.value)
-    )
-
     aggregated_dishes = (
         select(
             OrderContentsModel.dish_id,
@@ -188,4 +182,10 @@ async def process_freeze(
     )
 
     await session.execute(snapshot_stmt)
+    await session.execute(
+        update(OrdersModel)
+        .where(OrdersModel.id == order_id)
+        .values(status=OrderStatus.FROZEN)
+    )
+
     return ResultMessages.SUCCESS, None

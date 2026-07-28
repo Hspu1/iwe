@@ -4,15 +4,17 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import APIRouter, Header, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy import func, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from iwe.core.dependencies import pg_session
-from iwe.shared.postgres.enums import OutboxEventType, TopUpStatus
+from iwe.shared.postgres.enums import OrderStatus, OutboxEventType, TopUpStatus
 from iwe.shared.postgres.schema import (
+    OrderContentsModel,
+    OrdersModel,
     OutboxEventsModel,
     UserCardsModel,
     WalletTopUpsModel,
@@ -24,8 +26,9 @@ from iwe.shared.postgres.schema import (
 
 class ResultMessages(StrEnum):
     SUCCESS = "success"
-    NO_CARD_LAD = "no card lad"
     HOLD_THE_FUCK_UP = "hold the fuck up"
+    NO_CARD_LAD = "no card lad"
+    ZERO_AMOUNT = "amount cannot be equal to zero"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
 
@@ -44,9 +47,6 @@ class ErrCauseConstraint(StrEnum):
 
 
 class TopUpRequest(BaseModel):
-    """should be order_id instead of amount_cents acshually"""
-
-    amount_cents: int = Field(ge=5000)
     idempotency_key: UUID
 
 
@@ -69,7 +69,6 @@ async def create_request(
         verdict = await create_topup_request(
             session=session,
             user_id=x_user_id,
-            amount_cents=payload.amount_cents,
             idempotency_key=payload.idempotency_key,
         )
 
@@ -84,6 +83,10 @@ async def create_request(
 
         case ResultMessages.NO_CARD_LAD:
             # also triggers when the user is missing
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return TopUpResponse(verdict=verdict)
+
+        case ResultMessages.ZERO_AMOUNT:
             response.status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
             return TopUpResponse(verdict=verdict)
 
@@ -97,12 +100,15 @@ async def create_request(
 
 
 async def create_topup_request(
-    session: AsyncSession, user_id: UUID, amount_cents: int, idempotency_key: UUID
+    session: AsyncSession, user_id: UUID, idempotency_key: UUID
 ) -> ResultMessages:
 
     stmt_lock_card = (
         select(UserCardsModel.seti_id)
-        .where(UserCardsModel.user_id == user_id)
+        .where(
+            UserCardsModel.user_id == user_id,
+            UserCardsModel.is_default.is_(True),
+        )
         .with_for_update()
     )
 
@@ -112,21 +118,26 @@ async def create_topup_request(
     if not card_seti_id:
         return ResultMessages.NO_CARD_LAD
 
-    stmt_top_up = pg_insert(WalletTopUpsModel).from_select(
-        [
-            WalletTopUpsModel.user_id,
-            WalletTopUpsModel.idempotency_key,
-            WalletTopUpsModel.amount_cents,
-            WalletTopUpsModel.status,
-        ],
+    order_cost_res = await session.execute(
         select(
-            literal(user_id),
-            literal(idempotency_key),
-            literal(amount_cents),
-            literal(TopUpStatus.PENDING.value),
+            func.sum(OrderContentsModel.price_cents * OrderContentsModel.qty).label(
+                "total_cost"
+            )
         )
-        .select_from(UserCardsModel)
-        .where(UserCardsModel.user_id == user_id),
+        .select_from(OrdersModel)
+        .join(OrderContentsModel, OrderContentsModel.order_id == OrdersModel.id)
+        .where(OrdersModel.user_id == user_id, OrdersModel.status == OrderStatus.FROZEN)
+    )
+
+    amount_cents = order_cost_res.scalar_one()
+    if amount_cents == 0:
+        return ResultMessages.ZERO_AMOUNT
+
+    stmt_top_up = pg_insert(WalletTopUpsModel).values(
+        user_id=user_id,
+        idempotency_key=idempotency_key,
+        amount_cents=amount_cents,
+        status=TopUpStatus.PENDING,
     )
 
     try:
