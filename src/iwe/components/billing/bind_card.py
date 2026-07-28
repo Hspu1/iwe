@@ -5,7 +5,7 @@ from uuid import UUID
 import asyncpg
 from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, literal, select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -105,26 +105,17 @@ async def manage_card(  # noqa PLR0913
             .values(is_default=False)
         )
 
-    insert_stmt = pg_insert(UserCardsModel).from_select(
-        [
-            UserCardsModel.user_id,
-            UserCardsModel.seti_id,
-            UserCardsModel.card_brand,
-            UserCardsModel.card_last4,
-            UserCardsModel.is_default,
-        ],
-        select(
-            literal(user_id),
-            literal(seti_id),
-            literal(card_brand),
-            literal(card_last4),
-            func.coalesce(
-                literal(make_default or None),
-                select(func.count(UserCardsModel.seti_id) == 0)
-                .where(UserCardsModel.user_id == user_id)
-                .scalar_subquery(),
-            ),
-        ),
+    is_default_query = (
+        select(func.count(UserCardsModel.seti_id) == 0)
+        .where(UserCardsModel.user_id == user_id)
+        .scalar_subquery()
+    )
+    insert_stmt = pg_insert(UserCardsModel).values(
+        user_id=user_id,
+        seti_id=seti_id,
+        card_brand=card_brand,
+        card_last4=card_last4,
+        is_default=func.coalesce(make_default or None, is_default_query),
     )
 
     stmt_manage_card = insert_stmt.on_conflict_do_update(

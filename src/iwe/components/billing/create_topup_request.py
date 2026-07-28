@@ -163,20 +163,18 @@ async def create_topup_request(
         )
         raise err
 
-    event_type = OutboxEventType.HOLD_FUNDS_REQUESTED
-    payload = func.json_build_object(
-        literal(WalletTopUpsModel.user_id.name),
-        user_id,
-        literal(WalletTopUpsModel.amount_cents.name),
-        amount_cents,
-        literal(UserCardsModel.seti_id.name),
-        card_seti_id,
-        literal(WalletTopUpsModel.idempotency_key.name),
-        idempotency_key,
-    )
-
     stmt_outbox = pg_insert(OutboxEventsModel).values(
-        event_type=event_type, payload=payload
+        event_type=OutboxEventType.HOLD_FUNDS_REQUESTED,
+        payload=func.json_build_object(
+            literal(WalletTopUpsModel.user_id.name),
+            user_id,
+            literal(WalletTopUpsModel.amount_cents.name),
+            amount_cents,
+            literal(UserCardsModel.seti_id.name),
+            card_seti_id,
+            literal(WalletTopUpsModel.idempotency_key.name),
+            idempotency_key,
+        ),
     )
 
     await session.execute(stmt_outbox)
