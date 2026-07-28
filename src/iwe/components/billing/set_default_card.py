@@ -80,9 +80,9 @@ async def update_default_card(
         .with_for_update()
     )
 
-    res = await session.execute(lock_stmt)
+    lock_res = await session.execute(lock_stmt)
 
-    card_found = any(id_ == seti_id for id_ in res.scalars())
+    card_found = any(id_ == seti_id for id_ in lock_res.scalars())
     if not card_found:
         return ResultMessages.CARD_NOT_FOUND
 

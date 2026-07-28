@@ -48,7 +48,7 @@ async def get_cards(x_user_id: Annotated[UUID, Header()]) -> CardsResponse:
 
 
 async def get_all_cards(session: AsyncSession, user_id: UUID) -> list[UserCardsModel]:
-    raw_cards = await session.execute(
+    cards_res = await session.execute(
         select(UserCardsModel).where(UserCardsModel.user_id == user_id)
     )
-    return raw_cards.scalars().all()
+    return cards_res.scalars().all()

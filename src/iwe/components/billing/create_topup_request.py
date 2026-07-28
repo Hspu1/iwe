@@ -152,7 +152,7 @@ async def create_topup_request(
         )
         raise err
 
-    event_type = OutboxEventType.HOLD_FUNDS_REQUESTED.value
+    event_type = OutboxEventType.HOLD_FUNDS_REQUESTED
     payload = func.json_build_object(
         literal(WalletTopUpsModel.user_id.name),
         user_id,

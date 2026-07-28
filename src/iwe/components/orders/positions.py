@@ -39,7 +39,7 @@ class ErrCauseConstraint(StrEnum):
 
 class PositionRequest(BaseModel):
     dish_name: str = Field(min_length=6, max_length=67, pattern=r"(?i)burger")
-    qty: int = Field(ge=1, le=100)
+    qty: int = Field(ge=0, le=100)  # qty=0 => deleting
 
 
 class PositionResponse(BaseModel):
@@ -87,9 +87,9 @@ async def add_position(
     session: AsyncSession, user_id: UUID, dish_name: str, qty: int
 ) -> ResultMessages:
 
-    raw_order_id = (
+    order_id_stmt = (
         pg_insert(OrdersModel)
-        .values(user_id=user_id, status=OrderStatus.DRAFT.value)
+        .values(user_id=user_id, status=OrderStatus.DRAFT)
         .on_conflict_do_update(
             index_elements=[OrdersModel.user_id],
             index_where=literal_column(
@@ -102,7 +102,7 @@ async def add_position(
         .returning(OrdersModel.id)
     )
     try:
-        retrieve_order_id = await session.execute(raw_order_id)
+        order_id_res = await session.execute(order_id_stmt)
 
     except IntegrityError as err:
         driver_err: asyncpg.PostgresError | None = (
@@ -127,7 +127,7 @@ async def add_position(
                 raise err
 
     else:
-        order_id = retrieve_order_id.scalar_one_or_none()
+        order_id = order_id_res.scalar_one_or_none()
 
         insert_stmt = pg_insert(OrderContentsModel).from_select(
             [
@@ -147,7 +147,7 @@ async def add_position(
             ),
         )
 
-        stmt = insert_stmt.on_conflict_do_update(
+        add_pos_stmt = insert_stmt.on_conflict_do_update(
             index_elements=[
                 OrderContentsModel.order_id,
                 OrderContentsModel.dish_id,
@@ -155,8 +155,8 @@ async def add_position(
             set_={OrderContentsModel.qty: insert_stmt.excluded.qty},
         ).returning(OrderContentsModel.dish_id)
 
-        res = await session.execute(stmt)
-        if not res.scalar_one_or_none():
+        add_pos_res = await session.execute(add_pos_stmt)
+        if not add_pos_res.scalar_one_or_none():
             return ResultMessages.DISH_NOT_FOUND
 
         return ResultMessages.SUCCESS

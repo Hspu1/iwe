@@ -83,11 +83,16 @@ async def process_freeze(
 
     locked_order = await session.execute(
         select(OrdersModel.id)
+        .join(
+            OrderContentsModel,
+            OrderContentsModel.order_id == OrdersModel.id,
+        )
         .where(
             OrdersModel.user_id == user_id,
-            OrdersModel.status == OrderStatus.DRAFT.value,
+            OrdersModel.status == OrderStatus.DRAFT,
+            OrderContentsModel.qty > 0,
         )
-        .with_for_update()
+        .with_for_update(of=OrdersModel)
     )
     order_id: UUID | None = locked_order.scalar_one_or_none()
 
@@ -102,7 +107,10 @@ async def process_freeze(
         )
         .select_from(OrderContentsModel)
         .join(DishesModel, DishesModel.id == OrderContentsModel.dish_id)
-        .where(OrderContentsModel.order_id == order_id)
+        .where(
+            OrderContentsModel.order_id == order_id,
+            OrderContentsModel.qty > 0,
+        )
     )
 
     result_rows = (await session.execute(check_availability)).all()
@@ -126,9 +134,14 @@ async def process_freeze(
             OrderContentsModel.qty,
             DishesModel.info,
         )
-        .select_from(OrderContentsModel)
-        .join(DishesModel, DishesModel.id == OrderContentsModel.dish_id)
-        .where(OrderContentsModel.order_id == order_id)
+        .join(
+            DishesModel,
+            DishesModel.id == OrderContentsModel.dish_id,
+        )
+        .where(
+            OrderContentsModel.order_id == order_id,
+            OrderContentsModel.qty > 0,
+        )
         .subquery("aggregated_dishes")
     )
 
@@ -166,7 +179,7 @@ async def process_freeze(
         select(
             literal(order_id),
             func.jsonb_object_agg(weighted_summed.c.ingredient, weighted_summed.c.total),
-        ).select_from(weighted_summed),
+        ),
     )
 
     snapshot_stmt = insert_stmt.on_conflict_do_update(

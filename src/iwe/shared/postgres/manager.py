@@ -42,7 +42,8 @@ class PostgresManager(StrictSlots):
         try:
             start = perf_counter()
             self._engine = create_async_engine(
-                # url=self._cfg.pgbouncer_url,
+                # url=self._cfg.pgbouncer_url,  # complete BS, just use PgCat
+                echo=True,  # !!!!!!!!!!!!!!
                 url=str(self._cfg.postgres_url),
                 json_serializer=orjson_dumps,
                 json_deserializer=orjson_loads,

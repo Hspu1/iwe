@@ -8,6 +8,7 @@ from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from iwe.core.dependencies import pg_ro_session
+from iwe.shared.postgres.enums import OrderStatus
 from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersModel
 
 #######################################################################################
@@ -74,7 +75,8 @@ async def get_cart_positions(session: AsyncSession, user_id: UUID) -> list[RowMa
         .join(DishesModel, DishesModel.id == OrderContentsModel.dish_id)
         .where(
             OrdersModel.user_id == user_id,
-            OrdersModel.status == 1,  # OrderStatus.DRAFT
+            OrdersModel.status == OrderStatus.DRAFT,
+            OrderContentsModel.qty > 0,
         )
     )
 
