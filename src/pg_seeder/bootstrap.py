@@ -17,7 +17,7 @@ from .statements import (
     UPSERT_WAREHOUSE_SQL,
 )
 
-DADDY: Final[int] = 2
+DADDY: Final[int] = 1
 SEEDS_DIR: Final[Path] = Path(__file__).resolve().parents[DADDY] / "data" / "seeds"
 ENV_FILE: Final[Path] = Path(__file__).resolve().parents[DADDY] / ".env"
 CFG = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
@@ -37,6 +37,7 @@ def to_asyncpg_dsn(url: str) -> str:
 def get_ingredients_data() -> list[dict]:
     ingredients_dir = SEEDS_DIR / "ingredients"
     if not ingredients_dir.exists():
+        print("[PG SEEDER] u fucked up with paths", flush=True)
         return []
 
     records = []
@@ -52,6 +53,7 @@ def get_ingredients_data() -> list[dict]:
 def get_burgers_data() -> list[dict]:
     burgers_dir = SEEDS_DIR / "dishes" / "burgers"
     if not burgers_dir.exists():
+        print("[PG SEEDER] u fucked up with paths", flush=True)
         return []
 
     records = []
@@ -111,7 +113,7 @@ async def seed() -> None:
         if ingredient_rows:
             await conn.execute(UPSERT_WAREHOUSE_SQL)
 
-    print(f"Seeded {len(ingredient_rows)} ingredients and {len(dish_rows)} dishes", flush=True)
+    print(f"[PG SEEDER] Seeded {len(ingredient_rows)} ingredients and {len(dish_rows)} dishes", flush=True)
 
 
 if __name__ == "__main__":
@@ -120,9 +122,9 @@ if __name__ == "__main__":
 
     except asyncpg.PostgresError as err:
         if (err.sqlstate == "55P03") or ("could not obtain lock" in str(err).lower()):
-            print("PG is busy currently", flush=True)
+            print("[PG SEEDER] PG is busy currently", flush=True)
         else:
-            print(f"Seed expected shi: {err!r} (sqlstate: {err.sqlstate})", flush=True)
+            print(f"[PG SEEDER] Seed expected shi: {err!r} (sqlstate: {err.sqlstate})", flush=True)
 
     except Exception as err:
-        print(f"Seed unexpected shi: {err!r}", flush=True)
+        print(f"[PG SEEDER] Seed unexpected shi: {err!r}", flush=True)

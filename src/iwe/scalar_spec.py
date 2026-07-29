@@ -4,12 +4,16 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from iwe.core.env_conf import scalar_stg
+
 THEME: Final[str] = "Saturn"
 LAYOUT: Final[str] = "classic"
 
 
 def mount_standalone(app: FastAPI) -> None:
-    app.mount("/assets", StaticFiles(directory="/opt/scalar"), name="assets")
+    app.mount(
+        "/assets", StaticFiles(directory=scalar_stg.scalar_static_dir), name="assets"
+    )
 
     @app.get("/docs", include_in_schema=False)
     async def scalar_docs() -> HTMLResponse:

@@ -1,13 +1,12 @@
-from pathlib import Path
-from typing import Annotated, Final
+from typing import Annotated
 
+from dotenv import find_dotenv
 from pydantic import AfterValidator, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DADDY: Final[int] = 3
-BASE_DIR = Path(__file__).resolve().parents[DADDY]
-ENV_FILE = BASE_DIR / ".env"
-CFG = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
+CFG = SettingsConfigDict(
+    env_file=find_dotenv(usecwd=True), env_file_encoding="utf-8", extra="ignore"
+)
 
 
 class PostgresSettings(BaseSettings):
@@ -23,5 +22,12 @@ class StripeSettings(BaseSettings):
     stripe_webhook_secret: str
 
 
+class ScalarSettings(BaseSettings):
+    model_config = CFG
+
+    scalar_static_dir: str = "/opt/scalar"
+
+
 pg_stg = PostgresSettings()
 stripe_stg = StripeSettings()
+scalar_stg = ScalarSettings()
