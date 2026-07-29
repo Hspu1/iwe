@@ -9,7 +9,7 @@ LAYOUT: Final[str] = "classic"
 
 
 def mount_standalone(app: FastAPI) -> None:
-    app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+    app.mount("/assets", StaticFiles(directory="/opt/scalar"), name="assets")
 
     @app.get("/docs", include_in_schema=False)
     async def scalar_docs() -> HTMLResponse:
@@ -37,7 +37,7 @@ def mount_standalone(app: FastAPI) -> None:
                 "hideSearch": true
               }}'>
             </script>
-            <script src="/assets/scalar.js"></script>
+            <script src="/assets/scalar.js"></script> 
           </body>
         </html>
         """

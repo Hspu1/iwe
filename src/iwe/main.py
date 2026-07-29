@@ -6,6 +6,7 @@ from iwe.core.lifespan import get_lifespan
 from iwe.shared.postgres.manager import PostgresManager
 
 from .components import components_router
+from .healthz import healthz_router
 
 
 def create_app() -> FastAPI:
@@ -20,6 +21,7 @@ def create_app() -> FastAPI:
     scalar_spec.mount_standalone(app=app)
 
     app.include_router(components_router)
+    app.include_router(healthz_router)
 
     return app
 

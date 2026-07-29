@@ -10,7 +10,8 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_NO_CACHE=1
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-project --no-dev --group iwe
+COPY src/iwe/pyproject.toml ./src/iwe/
+RUN uv sync --frozen --no-install-project --no-dev --package iwe
 
 FROM ${BASE_IMAGE} AS runtime
 ARG APP_PORT
@@ -29,6 +30,8 @@ ENV APP_PORT=${APP_PORT}
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 
 COPY --chown=app:app ./src/iwe ./iwe
+COPY --chown=app:app deploy/alembic/ /app/deploy/alembic/
+# for pg-migrator
 
 USER app
 
@@ -37,7 +40,7 @@ CMD ["sh", "-c", "exec granian --interface asgi iwe.main:app \
     --port ${APP_PORT} \
     --loop uvloop \
     --workers 1 \
-    --http 1 \
     --log-level warning"]
+#--http 1 \
 
 EXPOSE ${APP_PORT}

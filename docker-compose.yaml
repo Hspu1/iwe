@@ -6,8 +6,9 @@ services:
     container_name: pg
     shm_size: 2GB # shared memory (1.5GB) + reserve
     volumes:
-      - ./deploy/postgres/postgres.conf:/etc/postgresql/postgresql.conf:ro
-      - pg_data:/var/lib/postgresql/data
+    - ./deploy/postgresql/postgres.conf:/etc/postgresql/postgresql.conf:ro
+    - ./deploy/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    - pg_data:/var/lib/postgresql
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     env_file: .env
     environment:
@@ -62,10 +63,9 @@ services:
       args:
         - APP_PORT=${APP_PORT:-8000}
     container_name: iwe
+    volumes:
+      - ./assets:/opt/scalar:ro
     env_file: .env
-    environment:
-      GRANIAN_PROXY_HEADERS: "true"
-      GRANIAN_FORWARDED_ALLOW_IPS: "127.0.0.1,172.19.0.0/24"
     depends_on:
       pg_migrator:
         condition: service_completed_successfully
@@ -81,6 +81,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+    ports:
+      - "8000:8000" 
     deploy:
       resources:
         limits:

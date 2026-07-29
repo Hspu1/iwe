@@ -2,13 +2,14 @@ import asyncio
 
 from fastapi import APIRouter, HTTPException, status
 
-from iwe.core.dependencies import pg_manager
+from iwe.core import dependencies
 
 healthz_router = APIRouter(prefix="/healthz", tags=["[System]"])
 
 
 @healthz_router.get("/readiness", status_code=status.HTTP_200_OK)
-async def readiness(pg: pg_manager) -> dict[str, str]:
+async def readiness() -> dict[str, str]:
+    pg = dependencies.pg_manager
     try:
         async with asyncio.timeout(5.0):
             await pg.ping()
