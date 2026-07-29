@@ -33,7 +33,7 @@ services:
     # oom_score_adj: ???
     # cpuset: ???
 
-  pg_migrator:  # group dev nah ??
+  pg_migrator:
     build:
       context: .
       dockerfile: deploy/iwe/Dockerfile
@@ -52,9 +52,23 @@ services:
     restart: on-failure:3
     # cpuset: ???
 
-  # !!!! PG SEEDING !!!!
-  # !!!! PG SEEDING !!!!
-  # !!!! PG SEEDING !!!!
+  pg_seeder:
+    build:
+      context: .
+      dockerfile: deploy/pg_seeder/Dockerfile
+    container_name: pg_seeder
+    env_file: .env
+    depends_on:
+      pg_migrator:
+        condition: service_completed_successfully
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    restart: on-failure:3
+    # cpuset: ???
 
   iwe:
     build:
@@ -67,10 +81,12 @@ services:
       - ./assets:/opt/scalar:ro
     env_file: .env
     depends_on:
-      pg_migrator:
+      pg_seeder:
         condition: service_completed_successfully
     networks:
       - backend
+    ports:
+      - "8000:8000"  # ok
     healthcheck:
       test:
         [
@@ -81,8 +97,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
-    ports:
-      - "8000:8000" 
     deploy:
       resources:
         limits:
