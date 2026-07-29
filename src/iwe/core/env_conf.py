@@ -9,6 +9,12 @@ CFG = SettingsConfigDict(
 )
 
 
+class ScalarSettings(BaseSettings):
+    model_config = CFG
+
+    scalar_static_dir: str = "/opt/scalar"
+
+
 class PostgresSettings(BaseSettings):
     model_config = CFG
 
@@ -22,12 +28,6 @@ class StripeSettings(BaseSettings):
     stripe_webhook_secret: str
 
 
-class ScalarSettings(BaseSettings):
-    model_config = CFG
-
-    scalar_static_dir: str = "/opt/scalar"
-
-
+scalar_stg = ScalarSettings()
 pg_stg = PostgresSettings()
 stripe_stg = StripeSettings()
-scalar_stg = ScalarSettings()
