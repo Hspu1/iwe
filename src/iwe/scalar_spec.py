@@ -37,7 +37,7 @@ def mount_standalone(app: FastAPI) -> None:
                 "hideSearch": true
               }}'>
             </script>
-            <script src="/assets/scalar.js"></script> 
+            <script src="/assets/scalar.js"></script>
           </body>
         </html>
         """
