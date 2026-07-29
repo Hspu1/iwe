@@ -1,8 +1,3 @@
-import sys
-from os.path import abspath, dirname
-
-sys.path.insert(0, abspath(dirname(dirname(dirname(__file__)))))
-
 import asyncio
 from logging.config import fileConfig
 
@@ -29,8 +24,6 @@ from iwe.shared.postgres.schema import (
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-current_dir = dirname(abspath(__file__))
-config.set_main_option("script_location", current_dir)
 config.set_main_option("sqlalchemy.url", str(pg_stg.postgres_url))
 
 

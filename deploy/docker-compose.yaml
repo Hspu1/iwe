@@ -1,0 +1,101 @@
+name: iwe
+
+services:
+  pg:
+    image: postgres:18.4-bookworm
+    container_name: pg
+    shm_size: 2GB # shared memory (1.5GB) + reserve
+    volumes:
+      - ./deploy/postgres/postgres.conf:/etc/postgresql/postgresql.conf:ro
+      - pg_data:/var/lib/postgresql/data
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    env_file: .env
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 3.5G
+        reservations:
+          memory: 3.5G
+    restart: unless-stopped
+    # oom_score_adj: ???
+    # cpuset: ???
+
+  pg_migrator:  # group dev nah ??
+    build:
+      context: .
+      dockerfile: deploy/iwe/Dockerfile
+    container_name: pg_migrator
+    env_file: .env
+    command: ["alembic", "-c", "deploy/alembic/alembic.ini", "upgrade", "head"]
+    depends_on:
+      pg:
+        condition: service_healthy
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    restart: on-failure:3
+    # cpuset: ???
+
+  # !!!! PG SEEDING !!!!
+  # !!!! PG SEEDING !!!!
+  # !!!! PG SEEDING !!!!
+
+  iwe:
+    build:
+      context: .
+      dockerfile: deploy/iwe/Dockerfile
+      args:
+        - APP_PORT=${APP_PORT:-8000}
+    container_name: iwe
+    env_file: .env
+    environment:
+      GRANIAN_PROXY_HEADERS: "true"
+      GRANIAN_FORWARDED_ALLOW_IPS: "127.0.0.1,172.19.0.0/24"
+    depends_on:
+      pg_migrator:
+        condition: service_completed_successfully
+    networks:
+      - backend
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python3 -c ''import http.client; conn = http.client.HTTPConnection("127.0.0.1", ${APP_PORT}); conn.request("GET", "/healthz/readiness"); resp = conn.getresponse(); exit(0) if resp.status == 200 else exit(1)''',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 1.2G
+        reservations:
+          memory: 768M
+    restart: unless-stopped
+    # oom_score_adj: ???
+    # cpuset: ???
+
+networks:
+  backend:
+    driver: bridge
+    enable_ipv6: false
+
+volumes:
+  pg_data:
+    driver: local

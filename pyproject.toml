@@ -7,8 +7,9 @@ version = "0.1.0"
 description = "whatcha wanna know huh"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "alembic>=1.18.5",
+
+[dependency-groups]
+iwe = [
     "asyncpg>=0.31.0",
     "fastapi>=0.139.0",
     "httpx>=0.28.1",
@@ -19,12 +20,12 @@ dependencies = [
     "uuid6>=2025.0.1",
 ]
 
-[dependency-groups]
 dev = [
+    "uvicorn>=0.49.0",
+    "alembic>=1.18.5",
     "ruff>=0.15.21",  # uv run ruff check . --fix
     # uvx ruff format .
     "ty>=0.0.58",  # uvx ty check .
-    "uvicorn>=0.49.0",
 ]
 
 [build-system]

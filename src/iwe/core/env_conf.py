@@ -14,7 +14,6 @@ class PostgresSettings(BaseSettings):
     model_config = CFG
 
     postgres_url: Annotated[PostgresDsn, AfterValidator(str)]
-    pgbouncer_url: Annotated[PostgresDsn, AfterValidator(str)]
 
 
 class StripeSettings(BaseSettings):
