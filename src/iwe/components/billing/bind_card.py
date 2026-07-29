@@ -152,7 +152,8 @@ async def manage_card(  # noqa PLR0913
                 print(
                     f"IntegrityError unexpected shi in manage_card: {
                         sqlstate, constraint
-                    }"
+                    }",
+                    flush=True,
                 )
                 raise err
 

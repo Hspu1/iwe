@@ -159,7 +159,8 @@ async def create_topup_request(
         print(
             f"IntegrityError unexpected shi in create_topup_request: {
                 sqlstate, constraint
-            }"
+            }",
+            flush=True,
         )
         raise err
 

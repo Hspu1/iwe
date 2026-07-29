@@ -27,9 +27,9 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 
-COPY --chown=app:app ./src/pg_seeder ./src/pg_seeder
-COPY --chown=app:app ./data/seeds ./data/data/seeds
+COPY --chown=app:app ./src/pg_seeder /app/pg_seeder
+COPY --chown=app:app ./data/seeds /app/data/seeds
 
 USER app
 
-CMD ["python3", "-m", "src.pg_seeder.bootstrap"]
+CMD ["python3", "-m", "pg_seeder.bootstrap"]

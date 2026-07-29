@@ -17,7 +17,7 @@ supported-markers = [
 [manifest]
 members = [
     "iwe",
-    "pg-seeding",
+    "pg-seeder",
     "wtf",
 ]
 
@@ -337,9 +337,25 @@ wheels = [
 ]
 
 [[package]]
-name = "pg-seeding"
+name = "pg-seeder"
 version = "0.1.0"
-source = { editable = "src/seeding" }
+source = { editable = "src/pg_seeder" }
+dependencies = [
+    { name = "asyncpg" },
+    { name = "orjson" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "uuid6" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "orjson", specifier = ">=3.11.9" },
+    { name = "pydantic", specifier = ">=2.10.0" },
+    { name = "pydantic-settings", specifier = ">=2.7.0" },
+    { name = "uuid6", specifier = ">=2025.0.1" },
+]
 
 [[package]]
 name = "pydantic"

@@ -29,9 +29,8 @@ ENV APP_PORT=${APP_PORT}
 
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 
-COPY --chown=app:app ./src/iwe ./src/iwe
+COPY --chown=app:app ./src/iwe /app/iwe
 COPY --chown=app:app deploy/alembic/ /app/deploy/alembic/
-# for pg_migrator
 
 USER app
 

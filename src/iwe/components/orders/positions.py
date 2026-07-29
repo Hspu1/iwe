@@ -125,7 +125,8 @@ async def add_position(
                 print(
                     f"IntegrityError unexpected shi in add_position: {
                         sqlstate, constraint
-                    }"
+                    }",
+                    flush=True,
                 )
                 raise err
 

@@ -18,6 +18,7 @@ class PostgresNotReachableError(BaseAppError):
 
 
 class WalletNotFoundError(BaseAppError):
+    """not for iwe btw"""
     default_message: str = "Requested wallet not found"
 
     def __init__(self, user_id: UUID, *args, **kwargs) -> None:
@@ -26,6 +27,7 @@ class WalletNotFoundError(BaseAppError):
 
 
 class WalletBalanceOverflowError(BaseAppError):
+    """not for iwe btw"""
     default_message: str = "Wallet balance limit exceeded"
 
     def __init__(self, user_id: UUID, *args, **kwargs) -> None:
