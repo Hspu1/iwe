@@ -17,29 +17,28 @@ FROM ${BASE_IMAGE} AS runtime
 ARG APP_PORT
 WORKDIR /app
 
-RUN useradd -m -u 1000 app && mkdir -p /app && chown app:app /app
+RUN useradd -m -u 1000 app && \
+    mkdir -p /app/tmp && \
+    chown -R app:app /app
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH="/app" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONOPTIMIZE=1 \
-    HOME=/app
-ENV APP_PORT=${APP_PORT}
+    HOME=/app \
+    TMPDIR=/app/tmp \
+    GRANIAN_PORT=${APP_PORT}
+
+ENV GRANIAN_HOST=0.0.0.0
+ENV GRANIAN_PORT=8000
 
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 
-COPY --chown=app:app ./src/iwe /app/iwe
-COPY --chown=app:app deploy/alembic/ /app/deploy/alembic/
+COPY --chown=app:app ./src/iwe/iwe /app/iwe
+COPY --chown=app:app ./deploy/alembic /app/deploy/alembic
 
 USER app
+EXPOSE ${GRANIAN_PORT}
 
-CMD ["sh", "-c", "exec granian --interface asgi iwe.main:app \
-    --host 0.0.0.0 \
-    --port ${APP_PORT} \
-    --loop uvloop \
-    --http 1 \
-    --workers 1 \
-    --log-level warning"]
-
-EXPOSE ${APP_PORT}
+CMD ["granian", "--interface", "asgi", "iwe.main:app", "--loop", "uvloop", "--workers", "1", "--log-level", "warning"]

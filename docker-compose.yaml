@@ -86,13 +86,22 @@ services:
     networks:
       - backend
     ports:
-      - "8000:8000"  # ok
+      - "${APP_PORT:-8000}:${APP_PORT:-8000}"
+    environment:
+      - GRANIAN_PORT=${APP_PORT:-8000}
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'python3 -c ''import http.client; conn = http.client.HTTPConnection("127.0.0.1", ${APP_PORT}); conn.request("GET", "/healthz/readiness"); resp = conn.getresponse(); exit(0) if resp.status == 200 else exit(1)''',
-        ]
+      test: |
+        python3 -c "
+        import http.client, os
+        port = int(os.getenv('GRANIAN_PORT', 8000))
+        try:
+            conn = http.client.HTTPConnection('127.0.0.1', port, timeout=3)
+            conn.request('GET', '/healthz/readiness')
+            resp = conn.getresponse()
+            exit(0) if resp.status == 200 else exit(1)
+        except Exception:
+            exit(1)
+        "
       interval: 15s
       timeout: 5s
       retries: 3

@@ -3,15 +3,24 @@
 # uv cache clean; Remove-Item -Recurse -Force .venv; uv sync
 # uv cache clean; rm -rf .venv; uv sync
 [project]
-name = "wtf"
+name = "wtf"  # iwe akshually
 version = "0.1.0"
 description = "whatcha wanna know huh"
 readme = "README.md"
 requires-python = ">=3.12"
 
+dependencies = [
+    "iwe",
+    "pg_seeder",
+]
+
 [tool.uv.workspace]
 members = ["src/*"]
 exclude = ["src/__pycache__", "**/__pycache__"]
+
+[tool.uv.sources]
+iwe = { workspace = true }
+pg_seeder = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -28,7 +37,7 @@ environments = [
 ]
 
 [tool.ty.src]
-include = ["src/iwe"]
+include = ["src/wtf"]
 exclude = [".venv", "deploy"]
 
 [tool.ruff]
@@ -59,7 +68,7 @@ lint.select = [
 ban-relative-imports = "parents"
 
 [tool.ruff.lint.isort]
-known-first-party = ["iwe"]  # name of the project
+known-first-party = ["iwe", "pg_seeder"]
 
 [tool.ruff.format]
 quote-style = "double"  # "" instead ''

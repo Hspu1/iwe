@@ -2,12 +2,11 @@
 name = "iwe"
 version = "0.1.0"
 description = "whatcha wanna know huh"
-readme = "README.md"
 requires-python = ">=3.12"
 
 dependencies = [
     "asyncpg>=0.31.0",
-    "uvloop>=0.22.1",
+    "uvloop>=0.22.1; sys_platform != 'win32'",
     "granian>=2.7.9",
     "alembic>=1.18.5",
     "fastapi>=0.139.0",
@@ -20,5 +19,8 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["uv-build"]
-build-backend = "uv_build"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["iwe"]
