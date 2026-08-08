@@ -6,8 +6,8 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from iwe.bootstrap.dependencies import pg_ro_session
 from iwe.infra.postgres.schema import UserCardsModel
+from iwe.shared.dependencies import pg_ro_session
 
 #######################################################################################
 #######################################################################################

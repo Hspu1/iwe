@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 
 from iwe import scalar_spec
-from iwe.bootstrap.env_conf import pg_stg
-from iwe.bootstrap.lifespan import get_lifespan
 from iwe.infra.postgres.manager import PostgresManager
+from iwe.shared.env_conf import pg_stg
 
 from .features import components_router
 from .healthz import healthz_router
+from .lifespan import get_lifespan
 
 
 def create_app() -> FastAPI:

@@ -32,4 +32,4 @@ COPY --chown=app:app ./data/seeds /app/data/seeds
 
 USER app
 
-CMD ["python3", "-m", "pg_seeder.bootstrap"]
+CMD ["python3", "-m", "pg_seeder.src.bootstrap"]

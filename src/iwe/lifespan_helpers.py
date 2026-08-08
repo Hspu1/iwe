@@ -1,7 +1,7 @@
 from asyncio import wait_for
 from collections.abc import Coroutine
 
-from iwe.bootstrap.exceptions import SafeStartError
+from iwe.shared.exceptions import SafeStartError
 
 
 async def safe_start(service_name: str, coro: Coroutine, atimeout: float) -> None:

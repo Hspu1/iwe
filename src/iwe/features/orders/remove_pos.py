@@ -7,9 +7,9 @@ from pydantic import BaseModel
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from iwe.bootstrap.dependencies import pg_session
 from iwe.infra.postgres.enums import OrderStatus
 from iwe.infra.postgres.schema import OrderContentsModel, OrdersModel
+from iwe.shared.dependencies import pg_session
 
 #######################################################################################
 #######################################################################################

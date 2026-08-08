@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 from pydantic import BaseModel, Field
 
-from iwe.bootstrap.dependencies import stripe_client
+from iwe.shared.dependencies import stripe_client
 
 #######################################################################################
 #######################################################################################

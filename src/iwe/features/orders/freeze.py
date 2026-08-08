@@ -8,7 +8,6 @@ from sqlalchemy import Numeric, cast, func, literal, select, text, true, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from iwe.bootstrap.dependencies import pg_session
 from iwe.infra.postgres.enums import OrderStatus
 from iwe.infra.postgres.schema import (
     DishesModel,
@@ -16,6 +15,7 @@ from iwe.infra.postgres.schema import (
     OrderContentsModel,
     OrdersModel,
 )
+from iwe.shared.dependencies import pg_session
 
 #######################################################################################
 #######################################################################################

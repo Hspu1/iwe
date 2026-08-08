@@ -3,10 +3,10 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 from fastapi import FastAPI
 
-from iwe.bootstrap import dependencies
 from iwe.infra.postgres.manager import PostgresManager
+from iwe.shared import dependencies
+from iwe.shared.exceptions import SafeStartError
 
-from .exceptions import SafeStartError
 from .lifespan_helpers import safe_start, silent_close
 
 

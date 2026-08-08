@@ -7,8 +7,8 @@ from pydantic import BaseModel
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from iwe.bootstrap.dependencies import pg_session
 from iwe.infra.postgres.schema import UserCardsModel
+from iwe.shared.dependencies import pg_session
 
 #######################################################################################
 #######################################################################################
