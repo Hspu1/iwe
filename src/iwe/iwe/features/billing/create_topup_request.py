@@ -2,7 +2,6 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-import asyncpg
 from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel
 from sqlalchemy import func, literal, select
@@ -19,6 +18,7 @@ from iwe.infra.postgres.schema import (
     WalletTopUpsModel,
 )
 from iwe.shared.dependencies import pg_session
+from iwe.shared.err_handlers import PgErrCtx, catch_asyncpg
 
 #######################################################################################
 #######################################################################################
@@ -28,17 +28,15 @@ class ResultMessages(StrEnum):
     SUCCESS = "success"
     HOLD_THE_FUCK_UP = "hold the fuck up"
     NO_CARD_LAD = "no card lad"
-    ZERO_AMOUNT = "amount cannot be equal to zero"
+    ALLEGEDLY_ORDER_NOT_FOUND = "ALLEGEDLY order not found (how tf?!)"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
 
 class ErrCauseState(StrEnum):
-    OP_VIOLATES_FK_CONSTRAINT = "23503"
     DUPLICATE_KEY = "23505"
 
 
 class ErrCauseConstraint(StrEnum):
-    WALLET_TOP_UPS_USER_ID_FK = "wallet_top_ups_user_id_fkey"
     UQ_WALLET_TOP_UPS_USER_IDEMPOTENCY = "uq_wallet_top_ups_user_idempotency"
 
 
@@ -81,13 +79,8 @@ async def create_request(
             response.status_code = status.HTTP_202_ACCEPTED
             return TopUpResponse(verdict=verdict)
 
-        case ResultMessages.NO_CARD_LAD:
-            # also triggers when the user is missing
+        case ResultMessages.NO_CARD_LAD | ResultMessages.ALLEGEDLY_ORDER_NOT_FOUND:
             response.status_code = status.HTTP_404_NOT_FOUND
-            return TopUpResponse(verdict=verdict)
-
-        case ResultMessages.ZERO_AMOUNT:
-            response.status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
             return TopUpResponse(verdict=verdict)
 
         case _:
@@ -116,6 +109,7 @@ async def create_topup_request(
     card_seti_id = res_card.scalar_one_or_none()
 
     if not card_seti_id:
+        # also triggers when the user is missing
         return ResultMessages.NO_CARD_LAD
 
     order_cost_res = await session.execute(
@@ -130,8 +124,8 @@ async def create_topup_request(
     )
 
     amount_cents = order_cost_res.scalar_one()
-    if amount_cents == 0:
-        return ResultMessages.ZERO_AMOUNT
+    if amount_cents in (None, 0):
+        return ResultMessages.ALLEGEDLY_ORDER_NOT_FOUND
 
     stmt_top_up = pg_insert(WalletTopUpsModel).values(
         user_id=user_id,
@@ -144,25 +138,15 @@ async def create_topup_request(
         await session.execute(stmt_top_up)
 
     except IntegrityError as err:
-        driver_err: asyncpg.PostgresError | None = (
-            err.orig.__cause__ if err.orig else None
-        )  # wtf
-        sqlstate: str = driver_err.sqlstate if driver_err else "unknown"
-        constraint: str = (driver_err.constraint_name if driver_err else None) or "none"
-
-        if (
-            sqlstate == ErrCauseState.DUPLICATE_KEY
-            and constraint == ErrCauseConstraint.UQ_WALLET_TOP_UPS_USER_IDEMPOTENCY
-        ):
-            return ResultMessages.HOLD_THE_FUCK_UP
-
-        print(
-            f"IntegrityError unexpected shi in create_topup_request: {
-                sqlstate, constraint
-            }",
-            flush=True,
+        return await catch_asyncpg(
+            err=err,
+            pg_err_ctx=PgErrCtx(
+                sqlstate=ErrCauseState.DUPLICATE_KEY,
+                constraint_name=ErrCauseConstraint.UQ_WALLET_TOP_UPS_USER_IDEMPOTENCY,
+            ),
+            section="create_topup_request",
+            res=ResultMessages.HOLD_THE_FUCK_UP,
         )
-        raise err
 
     stmt_outbox = pg_insert(OutboxEventsModel).values(
         event_type=OutboxEventType.HOLD_FUNDS_REQUESTED,

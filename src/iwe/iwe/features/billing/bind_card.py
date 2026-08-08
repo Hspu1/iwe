@@ -2,12 +2,10 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-import asyncpg
 from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from iwe.infra.postgres.schema import UserCardsModel
@@ -19,12 +17,11 @@ from iwe.shared.dependencies import pg_session
 
 class ResultMessages(StrEnum):
     SUCCESS = "success"
-    ALLEGEDLY_USER_NOT_FOUND = "ALLEGEDLY user not found (how tf?!)"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
 
 class ErrCauseState(StrEnum):
-    OP_VIOLATES_FK_CONSTRAINT = "23503"
+    OP_VIOLATES_FK_CONSTRAINT = "23504"
 
 
 class ErrCauseConstraint(StrEnum):
@@ -70,10 +67,6 @@ async def bind_setup_intent(
     match verdict:
         case ResultMessages.SUCCESS:
             response.status_code = status.HTTP_201_CREATED
-            return BindSetiResponse(verdict=verdict)
-
-        case ResultMessages.ALLEGEDLY_USER_NOT_FOUND:
-            response.status_code = status.HTTP_404_NOT_FOUND
             return BindSetiResponse(verdict=verdict)
 
         case _:
@@ -131,31 +124,5 @@ async def manage_card(  # noqa PLR0913
         ),
     )
 
-    try:
-        await session.execute(stmt_manage_card)
-
-    except IntegrityError as err:
-        driver_err: asyncpg.PostgresError | None = (
-            err.orig.__cause__ if err.orig else None
-        )  # wtf
-        sqlstate: str = driver_err.sqlstate if driver_err else "unknown"
-        constraint: str = (driver_err.constraint_name if driver_err else None) or "none"
-
-        match (sqlstate, constraint):
-            case (
-                ErrCauseState.OP_VIOLATES_FK_CONSTRAINT,
-                ErrCauseConstraint.USER_CARDS_USER_ID_FK,
-            ):
-                return ResultMessages.ALLEGEDLY_USER_NOT_FOUND
-
-            case _:
-                print(
-                    f"IntegrityError unexpected shi in manage_card: {
-                        sqlstate, constraint
-                    }",
-                    flush=True,
-                )
-                raise err
-
-    else:
-        return ResultMessages.SUCCESS
+    await session.execute(stmt_manage_card)
+    return ResultMessages.SUCCESS

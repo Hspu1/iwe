@@ -2,7 +2,6 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-import asyncpg
 from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import literal, literal_column, select
@@ -13,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from iwe.infra.postgres.enums import OrderStatus
 from iwe.infra.postgres.schema import DishesModel, OrderContentsModel, OrdersModel
 from iwe.shared.dependencies import pg_session
+from iwe.shared.err_handlers import PgErrCtx, catch_asyncpg
 
 #######################################################################################
 #######################################################################################
@@ -108,27 +108,15 @@ async def add_position(
         order_id_res = await session.execute(order_id_stmt)
 
     except IntegrityError as err:
-        driver_err: asyncpg.PostgresError | None = (
-            err.orig.__cause__ if err.orig else None
-        )  # wtf
-        sqlstate: str = driver_err.sqlstate if driver_err else "unknown"
-        constraint: str = (driver_err.constraint_name if driver_err else None) or "none"
-
-        match (sqlstate, constraint):
-            case (
-                ErrCauseState.OP_VIOLATES_FK_CONSTRAINT,
-                ErrCauseConstraint.ORDERS_USER_ID_FK,
-            ):
-                return ResultMessages.ALLEGEDLY_USER_NOT_FOUND
-
-            case _:
-                print(
-                    f"IntegrityError unexpected shi in add_position: {
-                        sqlstate, constraint
-                    }",
-                    flush=True,
-                )
-                raise err
+        return await catch_asyncpg(
+            err=err,
+            pg_err_ctx=PgErrCtx(
+                sqlstate=ErrCauseState.OP_VIOLATES_FK_CONSTRAINT,
+                constraint_name=ErrCauseConstraint.ORDERS_USER_ID_FK,
+            ),
+            section="add_position",
+            res=ResultMessages.ALLEGEDLY_USER_NOT_FOUND,
+        )
 
     else:
         order_id = order_id_res.scalar_one_or_none()

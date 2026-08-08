@@ -23,8 +23,8 @@ from iwe.shared.dependencies import pg_session
 
 class ResultMessages(StrEnum):
     SUCCESS = "success"
-    DRAFT_NOT_FOUND = "draft order not found"
-    CART_EMPTY = "cart is empty"
+    ALLEGEDLY_DRAFT_NOT_FOUND = "ALLEGEDLY draft order not found (how tf?!)"
+    ALLEGEDLY_CART_EMPTY = "ALLEGEDLY cart is empty (how tf?!)"
     ITEMS_UNAVAILABLE = "some items in cart are unavailable"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
@@ -60,7 +60,9 @@ async def freeze_cart(
             response.status_code = status.HTTP_200_OK
             return FreezeResponse(verdict=verdict)
 
-        case ResultMessages.DRAFT_NOT_FOUND | ResultMessages.CART_EMPTY:
+        case (
+            ResultMessages.ALLEGEDLY_DRAFT_NOT_FOUND | ResultMessages.ALLEGEDLY_CART_EMPTY
+        ):
             response.status_code = status.HTTP_404_NOT_FOUND
             return FreezeResponse(verdict=verdict)
 
@@ -97,7 +99,7 @@ async def process_freeze(
     order_id: UUID | None = locked_order.scalar_one_or_none()
 
     if not order_id:
-        return ResultMessages.DRAFT_NOT_FOUND, None
+        return ResultMessages.ALLEGEDLY_DRAFT_NOT_FOUND, None
 
     check_availability = (
         select(
@@ -115,7 +117,7 @@ async def process_freeze(
 
     result_rows = (await session.execute(check_availability)).all()
     if not result_rows:
-        return ResultMessages.CART_EMPTY, None
+        return ResultMessages.ALLEGEDLY_CART_EMPTY, None
 
     if unavailable_items := [
         {"dish_id": str(row[0]), "name": row[1]} for row in result_rows if not row[2]

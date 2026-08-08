@@ -16,7 +16,7 @@ from iwe.shared.dependencies import pg_session
 
 class ResultMessages(StrEnum):
     SUCCESS = "success"
-    CARD_NOT_FOUND = "card not found"
+    ALLEGEDLY_CARD_NOT_FOUND = "ALLEGEDLY card not found (how tf?!)"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
 
@@ -56,7 +56,7 @@ async def set_default_card(
             response.status_code = status.HTTP_201_CREATED
             return SetDefCardResponse(verdict=verdict)
 
-        case ResultMessages.CARD_NOT_FOUND:
+        case ResultMessages.ALLEGEDLY_CARD_NOT_FOUND:
             response.status_code = status.HTTP_404_NOT_FOUND
             return SetDefCardResponse(verdict=verdict)
 
@@ -84,7 +84,7 @@ async def update_default_card(
 
     card_found = any(id_ == seti_id for id_ in lock_res.scalars())
     if not card_found:
-        return ResultMessages.CARD_NOT_FOUND
+        return ResultMessages.ALLEGEDLY_CARD_NOT_FOUND
 
     await session.execute(
         update(UserCardsModel)

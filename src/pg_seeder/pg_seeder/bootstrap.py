@@ -17,7 +17,7 @@ from .statements import (
     UPSERT_WAREHOUSE_SQL,
 )
 
-DADDY: Final[int] = 1
+DADDY: Final[int] = 3
 SEEDS_DIR: Final[Path] = Path(__file__).resolve().parents[DADDY] / "data" / "seeds"
 ENV_FILE: Final[Path] = Path(__file__).resolve().parents[DADDY] / ".env"
 CFG = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
@@ -37,7 +37,10 @@ def to_asyncpg_dsn(url: str) -> str:
 def get_ingredients_data() -> list[dict]:
     ingredients_dir = SEEDS_DIR / "ingredients"
     if not ingredients_dir.exists():
-        print("[PG SEEDER] u fucked up with paths", flush=True)
+        print(
+            f"[PG SEEDER] u fucked up with paths, ingredients dir: {ingredients_dir}",
+            flush=True,
+        )
         return []
 
     records = []
@@ -53,7 +56,9 @@ def get_ingredients_data() -> list[dict]:
 def get_burgers_data() -> list[dict]:
     burgers_dir = SEEDS_DIR / "dishes" / "burgers"
     if not burgers_dir.exists():
-        print("[PG SEEDER] u fucked up with paths", flush=True)
+        print(
+            f"[PG SEEDER] u fucked up with paths, burgers dir: {burgers_dir}", flush=True
+        )
         return []
 
     records = []
