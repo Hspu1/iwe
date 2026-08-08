@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 
 from iwe import scalar_spec
-from iwe.core.env_conf import pg_stg
-from iwe.core.lifespan import get_lifespan
-from iwe.shared.postgres.manager import PostgresManager
+from iwe.bootstrap.env_conf import pg_stg
+from iwe.bootstrap.lifespan import get_lifespan
+from iwe.infra.postgres.manager import PostgresManager
 
-from .components import components_router
+from .features import components_router
 from .healthz import healthz_router
 
 

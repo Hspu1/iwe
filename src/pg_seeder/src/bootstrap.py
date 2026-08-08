@@ -113,7 +113,12 @@ async def seed() -> None:
         if ingredient_rows:
             await conn.execute(UPSERT_WAREHOUSE_SQL)
 
-    print(f"[PG SEEDER] Seeded {len(ingredient_rows)} ingredients and {len(dish_rows)} dishes", flush=True)
+    print(
+        f"[PG SEEDER] Seeded {len(ingredient_rows)} ingredients and {
+            len(dish_rows)
+        } dishes",
+        flush=True,
+    )
 
 
 if __name__ == "__main__":
@@ -124,7 +129,10 @@ if __name__ == "__main__":
         if (err.sqlstate == "55P03") or ("could not obtain lock" in str(err).lower()):
             print("[PG SEEDER] PG is busy currently", flush=True)
         else:
-            print(f"[PG SEEDER] Seed expected shi: {err!r} (sqlstate: {err.sqlstate})", flush=True)
+            print(
+                f"[PG SEEDER] Seed expected shi: {err!r} (sqlstate: {err.sqlstate})",
+                flush=True,
+            )
 
     except Exception as err:
         print(f"[PG SEEDER] Seed unexpected shi: {err!r}", flush=True)

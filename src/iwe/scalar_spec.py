@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from iwe.core.env_conf import scalar_stg
+from iwe.bootstrap.env_conf import scalar_stg
 
 THEME: Final[str] = "Saturn"
 LAYOUT: Final[str] = "classic"

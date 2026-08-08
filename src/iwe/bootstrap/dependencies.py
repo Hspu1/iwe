@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession
 from stripe import StripeClient
 
-from iwe.core.env_conf import stripe_stg
-from iwe.shared.postgres.manager import PostgresManager
+from iwe.bootstrap.env_conf import stripe_stg
+from iwe.infra.postgres.manager import PostgresManager
 
 from .exceptions import PostgresNotReachableError
 

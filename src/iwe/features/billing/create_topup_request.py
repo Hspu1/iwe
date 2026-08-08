@@ -10,9 +10,9 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from iwe.core.dependencies import pg_session
-from iwe.shared.postgres.enums import OrderStatus, OutboxEventType, TopUpStatus
-from iwe.shared.postgres.schema import (
+from iwe.bootstrap.dependencies import pg_session
+from iwe.infra.postgres.enums import OrderStatus, OutboxEventType, TopUpStatus
+from iwe.infra.postgres.schema import (
     OrderContentsModel,
     OrdersModel,
     OutboxEventsModel,

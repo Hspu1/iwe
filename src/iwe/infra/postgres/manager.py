@@ -12,9 +12,9 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool  # noqa
 
-from iwe.core.base import StrictSlots
-from iwe.core.env_conf import PostgresSettings
-from iwe.core.exceptions import PostgresNotReachableError
+from iwe.bootstrap.base import StrictSlots
+from iwe.bootstrap.env_conf import PostgresSettings
+from iwe.bootstrap.exceptions import PostgresNotReachableError
 
 
 def orjson_dumps(data: Any) -> bytes:

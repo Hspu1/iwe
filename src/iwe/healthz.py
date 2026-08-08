@@ -2,7 +2,7 @@ import asyncio
 
 from fastapi import APIRouter, HTTPException, status
 
-from iwe.core import dependencies
+from iwe.bootstrap import dependencies
 
 healthz_router = APIRouter(prefix="/healthz", tags=["[System]"])
 

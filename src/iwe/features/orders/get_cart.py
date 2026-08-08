@@ -7,9 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from iwe.core.dependencies import pg_ro_session
-from iwe.shared.postgres.enums import OrderStatus
-from iwe.shared.postgres.schema import DishesModel, OrderContentsModel, OrdersModel
+from iwe.bootstrap.dependencies import pg_ro_session
+from iwe.infra.postgres.enums import OrderStatus
+from iwe.infra.postgres.schema import DishesModel, OrderContentsModel, OrdersModel
 
 #######################################################################################
 #######################################################################################
