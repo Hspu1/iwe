@@ -1,7 +1,9 @@
-# activate uv w/ .venv\Scripts\activate (am OOM tho)
+# (for what?) activate uv w/ .venv\Scripts\activate (am OOM tho)
 # clean ts:
 # uv cache clean; Remove-Item -Recurse -Force .venv; uv sync
+# + Stop-Process -Name "ruff" -Force
 # uv cache clean; rm -rf .venv; uv sync
+# (?) + pkill -9 -f ruff
 [project]
 name = "wtf"  # iwe akshually
 version = "0.1.0"
@@ -37,13 +39,19 @@ environments = [
 ]
 
 [tool.ty.src]
-include = ["src/wtf"]
-exclude = [".venv", "deploy"]
+include = ["src/iwe", "src/pg_seeder"]
+exclude = [
+    ".venv",
+    "deploy",
+    "assets",
+    "tests",
+    "check_constraints.py"
+]
 
 [tool.ruff]
 fix = false
 line-length = 90
-exclude = ["deploy", "assets", "check_constraints.py"]
+exclude = [".venv", "deploy", "assets", "check_constraints.py"]
 lint.select = [
     "E",   # Pycodestyle errors
     "F",   # Pyflakes

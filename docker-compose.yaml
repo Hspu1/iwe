@@ -33,11 +33,11 @@ services:
     # oom_score_adj: ???
     # cpuset: ???
 
-  pg_migrator:
+  pg-migrator:
     build:
       context: .
       dockerfile: deploy/iwe/Dockerfile
-    container_name: pg_migrator
+    container_name: pg-migrator
     env_file: .env
     command: ["alembic", "-c", "deploy/alembic/alembic.ini", "upgrade", "head"]
     depends_on:
@@ -52,11 +52,11 @@ services:
     restart: on-failure:3
     # cpuset: ???
 
-  pg_seeder:
+  pg-seeder:
     build:
       context: .
       dockerfile: deploy/pg_seeder/Dockerfile
-    container_name: pg_seeder
+    container_name: pg-seeder
     env_file: .env
     depends_on:
       pg_migrator:

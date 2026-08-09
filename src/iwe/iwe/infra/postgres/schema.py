@@ -52,11 +52,8 @@ class WalletsModel(Base):
         sort_order=1,
     )
 
-    balance_cents: Mapped[int] = mapped_column(
+    virt_balance: Mapped[int] = mapped_column(
         BIGINT, nullable=False, default=0, server_default=text("0"), sort_order=2
-    )
-    cashback_balance_cents: Mapped[int] = mapped_column(
-        BIGINT, nullable=False, default=0, server_default=text("0"), sort_order=3
     )
 
 

@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: 9bfc4a42542a
+Revision ID: 3efa78d6b814
 Revises:
-Create Date: 2026-07-27 14:29:45.046218
+Create Date: 2026-08-09 20:07:53.125102
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '9bfc4a42542a'
+revision: str = '3efa78d6b814'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -37,7 +37,6 @@ def upgrade() -> None:
 
 
 
-
     op.create_table('ingredients',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('name', sa.String(length=50), nullable=False),
@@ -45,7 +44,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('uq_ingredients_name_lowercase', 'ingredients', [sa.literal_column('lower(name)')], unique=True, postgresql_where=sa.text('is_available IS true'))
-
 
 
 
@@ -59,12 +57,10 @@ def upgrade() -> None:
 
 
 
-
     op.create_table('users',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-
 
 
 
@@ -82,7 +78,6 @@ def upgrade() -> None:
     op.execute("ALTER TABLE orders SET (fillfactor = 88)")
 
 
-
     op.create_table('user_cards',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('user_id', sa.Uuid(), nullable=False),
@@ -96,7 +91,6 @@ def upgrade() -> None:
     op.create_index('uq_user_cards_seti_id', 'user_cards', ['seti_id'], unique=True)
     op.create_index('uq_user_cards_user_default_card', 'user_cards', ['user_id'], unique=True, postgresql_where=sa.text('is_default IS true'))
     op.execute("ALTER TABLE user_cards SET (fillfactor = 92)")
-
 
 
     op.create_table('wallet_top_ups',
@@ -114,16 +108,13 @@ def upgrade() -> None:
     op.execute("ALTER TABLE wallet_top_ups SET (fillfactor = 88)")
 
 
-
     op.create_table('wallets',
     sa.Column('user_id', sa.Uuid(), nullable=False),
-    sa.Column('balance_cents', sa.BIGINT(), server_default=sa.text('0'), nullable=False),
-    sa.Column('cashback_balance_cents', sa.BIGINT(), server_default=sa.text('0'), nullable=False),
+    sa.Column('virt_balance', sa.BIGINT(), server_default=sa.text('0'), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('user_id')
     )
     op.execute("ALTER TABLE wallets SET (fillfactor = 76)")
-
 
 
     op.create_table('warehouse',
@@ -135,14 +126,12 @@ def upgrade() -> None:
     op.execute("ALTER TABLE warehouse SET (fillfactor = 67)")
 
 
-
     op.create_table('ingredients_snapshots',
     sa.Column('order_id', sa.Uuid(), nullable=False),
     sa.Column('snapshot', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.ForeignKeyConstraint(['order_id'], ['orders.id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('order_id')
     )
-
 
 
 

@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool  # noqa
 
 from iwe.shared.base import StrictSlots
 from iwe.shared.env_conf import PostgresSettings
