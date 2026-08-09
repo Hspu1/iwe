@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from iwe.infra.postgres.enums import OrderStatus, OutboxEventType, TopUpStatus
 from iwe.infra.postgres.schema import (
+    IngredientsSnapshotModel,
     OrderContentsModel,
     OrdersModel,
     OutboxEventsModel,
@@ -29,6 +30,7 @@ class ResultMessages(StrEnum):
     HOLD_THE_FUCK_UP = "hold the fuck up"
     NO_CARD_LAD = "no card lad"
     ALLEGEDLY_ORDER_NOT_FOUND = "ALLEGEDLY order not found (how tf?!)"
+    ALLEGEDLY_ORDER_CONTENT_NOT_FOUND = "ALLEGEDLY order content not found (how tf?!)"
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
 
 
@@ -79,7 +81,11 @@ async def create_request(
             response.status_code = status.HTTP_202_ACCEPTED
             return TopUpResponse(verdict=verdict)
 
-        case ResultMessages.NO_CARD_LAD | ResultMessages.ALLEGEDLY_ORDER_NOT_FOUND:
+        case (
+            ResultMessages.NO_CARD_LAD
+            | ResultMessages.ALLEGEDLY_ORDER_NOT_FOUND
+            | ResultMessages.ALLEGEDLY_ORDER_CONTENT_NOT_FOUND
+        ):
             response.status_code = status.HTTP_404_NOT_FOUND
             return TopUpResponse(verdict=verdict)
 
@@ -108,24 +114,38 @@ async def create_topup_request(
     res_card = await session.execute(stmt_lock_card)
     card_seti_id = res_card.scalar_one_or_none()
 
-    if not card_seti_id:
-        # also triggers when the user is missing
+    if card_seti_id is None:
+        # also triggers when the user is missing (so ok)
         return ResultMessages.NO_CARD_LAD
 
-    order_cost_res = await session.execute(
+    order_info_res = await session.execute(
         select(
             func.sum(OrderContentsModel.price_cents * OrderContentsModel.qty).label(
                 "total_cost"
-            )
+            ),
+            IngredientsSnapshotModel.snapshot.label("snapshot"),
         )
         .select_from(OrdersModel)
         .join(OrderContentsModel, OrderContentsModel.order_id == OrdersModel.id)
-        .where(OrdersModel.user_id == user_id, OrdersModel.status == OrderStatus.FROZEN)
+        .join(
+            IngredientsSnapshotModel, IngredientsSnapshotModel.order_id == OrdersModel.id
+        )
+        .where(
+            OrdersModel.user_id == user_id,
+            OrdersModel.status == OrderStatus.FROZEN,
+        )
+        .group_by(IngredientsSnapshotModel.snapshot)
     )
 
-    amount_cents = order_cost_res.scalar_one()
-    if amount_cents in (None, 0):
+    if (order_info_rows := order_info_res.first()) is None:
         return ResultMessages.ALLEGEDLY_ORDER_NOT_FOUND
+
+    amount_cents, ingredients_snapshot = (
+        order_info_rows.total_cost,
+        order_info_rows.snapshot,
+    )
+    if amount_cents in (None, 0) or ingredients_snapshot is None:
+        return ResultMessages.ALLEGEDLY_ORDER_CONTENT_NOT_FOUND
 
     stmt_top_up = pg_insert(WalletTopUpsModel).values(
         user_id=user_id,
@@ -150,6 +170,7 @@ async def create_topup_request(
 
     stmt_outbox = pg_insert(OutboxEventsModel).values(
         event_type=OutboxEventType.HOLD_FUNDS_REQUESTED,
+        # partition_key=...
         payload=func.json_build_object(
             literal(WalletTopUpsModel.user_id.name),
             user_id,
@@ -159,6 +180,8 @@ async def create_topup_request(
             card_seti_id,
             literal(WalletTopUpsModel.idempotency_key.name),
             idempotency_key,
+            literal(IngredientsSnapshotModel.snapshot.name),
+            ingredients_snapshot,
         ),
     )
 

@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,15 +17,8 @@ from iwe.shared.dependencies import pg_session
 
 class ResultMessages(StrEnum):
     SUCCESS = "success"
+    # user not found... - can't be
     UNSUPPORTED_RESULT = "ya forgot to handle smth"
-
-
-class ErrCauseState(StrEnum):
-    OP_VIOLATES_FK_CONSTRAINT = "23504"
-
-
-class ErrCauseConstraint(StrEnum):
-    USER_CARDS_USER_ID_FK = "user_cards_user_id_fkey"
 
 
 #######################################################################################
@@ -87,7 +80,7 @@ async def manage_card(  # noqa PLR0913
     make_default: bool,
 ) -> ResultMessages:
 
-    if make_default:
+    if make_default is True:
         await session.execute(
             update(UserCardsModel)
             .where(
@@ -108,7 +101,10 @@ async def manage_card(  # noqa PLR0913
         seti_id=seti_id,
         card_brand=card_brand,
         card_last4=card_last4,
-        is_default=func.coalesce(make_default or None, is_default_query),
+        is_default=case(
+            (make_default is True, True),
+            else_=is_default_query,
+        ),
     )
 
     stmt_manage_card = insert_stmt.on_conflict_do_update(

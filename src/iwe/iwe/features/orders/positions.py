@@ -148,7 +148,7 @@ async def add_position(
         ).returning(OrderContentsModel.dish_id)
 
         add_pos_res = await session.execute(add_pos_stmt)
-        if not add_pos_res.scalar_one_or_none():
+        if add_pos_res.scalar_one_or_none() is None:
             return ResultMessages.ALLEGEDLY_DISH_NOT_FOUND
 
         return ResultMessages.SUCCESS

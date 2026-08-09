@@ -88,7 +88,7 @@ async def remove_position(
     )
 
     order_id = order_res.scalar_one_or_none()
-    if not order_id:
+    if order_id is None:
         return ResultMessages.ALLEGEDLY_SMTH_NOT_FOUND
 
     upd_res = await session.execute(
@@ -101,7 +101,7 @@ async def remove_position(
         .returning(OrderContentsModel.order_id)
     )
 
-    if not upd_res.scalar_one_or_none():
+    if upd_res.scalar_one_or_none() is None:
         return ResultMessages.ALLEGEDLY_DISH_NOT_FOUND
 
     return ResultMessages.SUCCESS

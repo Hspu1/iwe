@@ -98,7 +98,7 @@ async def process_freeze(
     )
     order_id: UUID | None = locked_order.scalar_one_or_none()
 
-    if not order_id:
+    if order_id is None:
         return ResultMessages.ALLEGEDLY_DRAFT_NOT_FOUND, None
 
     check_availability = (
@@ -116,11 +116,11 @@ async def process_freeze(
     )
 
     result_rows = (await session.execute(check_availability)).all()
-    if not result_rows:
+    if result_rows is None:
         return ResultMessages.ALLEGEDLY_CART_EMPTY, None
 
     if unavailable_items := [
-        {"dish_id": str(row[0]), "name": row[1]} for row in result_rows if not row[2]
+        {"dish_id": str(row[0]), "name": row[1]} for row in result_rows if row[2] is None
     ]:
         return ResultMessages.ITEMS_UNAVAILABLE, unavailable_items
 

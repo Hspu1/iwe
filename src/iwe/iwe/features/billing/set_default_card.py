@@ -83,7 +83,7 @@ async def update_default_card(
     lock_res = await session.execute(lock_stmt)
 
     card_found = any(id_ == seti_id for id_ in lock_res.scalars())
-    if not card_found:
+    if card_found is None:
         return ResultMessages.ALLEGEDLY_CARD_NOT_FOUND
 
     await session.execute(
