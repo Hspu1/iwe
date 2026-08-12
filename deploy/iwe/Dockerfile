@@ -11,6 +11,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 COPY pyproject.toml uv.lock ./
 COPY src/iwe/pyproject.toml ./src/iwe/
+
 RUN uv sync --frozen --no-install-project --no-dev --package iwe
 
 FROM ${BASE_IMAGE} AS runtime

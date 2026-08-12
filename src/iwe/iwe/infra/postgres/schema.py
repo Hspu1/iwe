@@ -52,8 +52,11 @@ class WalletsModel(Base):
         sort_order=1,
     )
 
-    virt_balance: Mapped[int] = mapped_column(
+    balance_cents: Mapped[int] = mapped_column(
         BIGINT, nullable=False, default=0, server_default=text("0"), sort_order=2
+    )
+    cashback_balance_cents: Mapped[int] = mapped_column(
+        BIGINT, nullable=False, default=0, server_default=text("0"), sort_order=3
     )
 
 
@@ -165,7 +168,13 @@ class IngredientsModel(Base, UUIDv7Mixin):
     )
 
 
+class IngredientsSnapshotModel(Base):
+    __tablename__ = "ingredients_snapshots"
 
+    order_id: Mapped[UUID] = mapped_column(
+        Uuid, ForeignKey("orders.id", ondelete="RESTRICT"), primary_key=True, sort_order=1
+    )
+    snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False, sort_order=2)
 
 
 class WarehouseModel(Base):
@@ -227,3 +236,10 @@ class OrderContentsModel(Base):
     qty: Mapped[int] = mapped_column(SmallInteger, nullable=False, sort_order=4)
 
 
+class OutboxEventsModel(Base, UUIDv7Mixin, TimestampMixin):
+    __tablename__ = "outbox_events"
+
+    event_type: Mapped[OutboxEventType] = mapped_column(
+        SmallInteger, nullable=False, sort_order=1
+    )
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, sort_order=2)
