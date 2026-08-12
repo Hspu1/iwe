@@ -1,0 +1,30 @@
+# needed (go-)Task; redocly; yq
+version: '3'
+
+vars:
+  BUILD_DIR: "dist"
+  IWE_SPEC: "{{.BUILD_DIR}}/iwe.json"
+  COMBINED_OPENAPI_RAW: "{{.BUILD_DIR}}/openapi-raw.json"
+  COMBINED_OPENAPI_FINAL: "{{.BUILD_DIR}}/openapi.json"
+  GATEWAY_URL: '{{env "GATEWAY_URL" | default "http://localhost:8080"}}'
+
+tasks:
+  default:
+    cmds:
+      - task: merge
+
+  dump-iwe:
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - uv run python src/iwe/scripts/openapi_dump.py > {{.IWE_SPEC}}
+
+  merge:
+    deps: [dump-iwe]
+    cmds:
+      # - redocly join {{.IWE_SPEC}} --output {{.COMBINED_OPENAPI_RAW}}
+      - cp {{.IWE_SPEC}} {{.COMBINED_OPENAPI_RAW}}
+      # !!! /v1/iwe !!!
+      - yq eval '.servers = [{"url":"{{.GATEWAY_URL}}/v1/iwe"}]' {{.COMBINED_OPENAPI_RAW}} -o=json > {{.COMBINED_OPENAPI_FINAL}}
+      - rm {{.COMBINED_OPENAPI_RAW}}
+      - rm {{.IWE_SPEC}}
+      - echo "Done with openapi spec for gayway {{.GATEWAY_URL}}"

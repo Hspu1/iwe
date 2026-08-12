@@ -1,0 +1,10 @@
+{
+  "endpoint": "{{ .Prefix }}/{any}",
+  "method": "{{ .Method }}",
+  "backend": [
+    {
+      "url_pattern": "/{any}",
+      "host": ["{{ env "IWE_URL" }}"]
+    }
+  ]
+}

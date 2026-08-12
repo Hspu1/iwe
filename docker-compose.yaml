@@ -36,7 +36,7 @@ services:
   pg-migrator:
     build:
       context: .
-      dockerfile: deploy/iwe/Dockerfile
+      dockerfile: ./deploy/iwe/Dockerfile
     container_name: pg-migrator
     env_file: .env
     command: ["alembic", "-c", "deploy/alembic/alembic.ini", "upgrade", "head"]
@@ -55,11 +55,11 @@ services:
   pg-seeder:
     build:
       context: .
-      dockerfile: deploy/pg_seeder/Dockerfile
+      dockerfile: ./deploy/pg_seeder/Dockerfile
     container_name: pg-seeder
     env_file: .env
     depends_on:
-      pg_migrator:
+      pg-migrator:
         condition: service_completed_successfully
     networks:
       - backend
@@ -73,7 +73,7 @@ services:
   iwe:
     build:
       context: .
-      dockerfile: deploy/iwe/Dockerfile
+      dockerfile: ./deploy/iwe/Dockerfile
       args:
         - APP_PORT=${APP_PORT:-8000}
     container_name: iwe
@@ -81,7 +81,7 @@ services:
       - ./assets:/opt/scalar:ro
     env_file: .env
     depends_on:
-      pg_seeder:
+      pg-seeder:
         condition: service_completed_successfully
     networks:
       - backend
@@ -116,9 +116,50 @@ services:
     # oom_score_adj: ???
     # cpuset: ???
 
+  krakend-gateway:
+    image: devopsfaith/krakend:2.13.8
+    networks:
+      - backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./deploy/krakend:/etc/krakend
+    command: ["run", "-c", "/etc/krakend/krakend.tmpl"]
+    environment:
+      - FC_ENABLE=1
+      - FC_PARTIALS=/etc/krakend/partials
+      - IWE_URL=http://iwe:8000
+    restart: unless-stopped
+    # oom_score_adj: ???
+    # cpuset: ???
+
+  scalar-openapi:
+    image: scalarapi/api-reference:0.5.61
+    networks:
+      - backend
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./dist/openapi.json:/api-docs/openapi.json:ro
+    environment:
+      - SPEC_URL=/api-docs/openapi.json
+      - |
+        API_REFERENCE_CONFIG={
+          "theme": "saturn",
+          "layout": "classic",
+          "hideDownloadButton": true,
+          "hideClientButton": true,
+          "hiddenClients": true,
+          "hideSearch": true
+        }
+    restart: unless-stopped
+    # oom_score_adj: ???
+    # cpuset: ???
+
 networks:
   backend:
     driver: bridge
+    # internal: true
     enable_ipv6: false
 
 volumes:

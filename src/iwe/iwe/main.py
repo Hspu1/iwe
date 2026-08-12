@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 
-from iwe import scalar_spec
 from iwe.infra.postgres.manager import PostgresManager
 from iwe.shared.env_conf import pg_stg
 
@@ -18,7 +17,6 @@ def create_app() -> FastAPI:
         docs_url=None,
         redoc_url=None,
     )
-    scalar_spec.mount_standalone(app=app)
 
     app.include_router(components_router)
     app.include_router(healthz_router)
