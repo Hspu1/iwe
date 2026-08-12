@@ -1,12 +1,15 @@
 # needed (go-)Task; redocly; yq
 version: '3'
 
+dotenv: [.env]
+
 vars:
+  UV_LINK_MODE: "copy"
   BUILD_DIR: "dist"
   IWE_SPEC: "{{.BUILD_DIR}}/iwe.json"
   COMBINED_OPENAPI_RAW: "{{.BUILD_DIR}}/openapi-raw.json"
   COMBINED_OPENAPI_FINAL: "{{.BUILD_DIR}}/openapi.json"
-  GATEWAY_URL: '{{env "GATEWAY_URL" | default "http://localhost:8080"}}'
+  GATEWAY_URL: '{{.GATEWAY_URL}}'
 
 tasks:
   default:

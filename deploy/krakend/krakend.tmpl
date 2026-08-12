@@ -13,8 +13,8 @@
     }
   },
   "endpoints": [
-    {{ template "iwe_endpoints.tmpl" (marshal (dict "Method" "GET" "Prefix" "/v1/iwe")) }},
-    {{ template "iwe_endpoints.tmpl" (marshal (dict "Method" "POST" "Prefix" "/v1/iwe")) }},
-    {{ template "iwe_endpoints.tmpl" (marshal (dict "Method" "PATCH" "Prefix" "/v1/iwe")) }}
+    {{ template "iwe_endpoints.tmpl" (dict "Method" "GET" "Prefix" "/v1/iwe") }},
+    {{ template "iwe_endpoints.tmpl" (dict "Method" "POST" "Prefix" "/v1/iwe") }},
+    {{ template "iwe_endpoints.tmpl" (dict "Method" "PATCH" "Prefix" "/v1/iwe") }}
   ]
 }

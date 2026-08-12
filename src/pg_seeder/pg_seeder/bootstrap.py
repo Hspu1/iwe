@@ -17,7 +17,8 @@ from .statements import (
     UPSERT_WAREHOUSE_SQL,
 )
 
-DADDY: Final[int] = 3
+# !!! locally? --> 3 !!!
+DADDY: Final[int] = 2
 SEEDS_DIR: Final[Path] = Path(__file__).resolve().parents[DADDY] / "data" / "seeds"
 ENV_FILE: Final[Path] = Path(__file__).resolve().parents[DADDY] / ".env"
 CFG = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
