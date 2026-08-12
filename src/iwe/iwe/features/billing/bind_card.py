@@ -44,13 +44,13 @@ router = APIRouter()
 
 @router.post("/bind-card")
 async def bind_setup_intent(
-    x_user_id: Annotated[UUID, Header()], payload: BindSetiRequest, response: Response
+    authorization: Annotated[UUID, Header(alias="X-User-Id")], payload: BindSetiRequest, response: Response
 ) -> BindSetiResponse:
 
     async with pg_session() as session:
         verdict = await manage_card(
             session=session,
-            user_id=x_user_id,
+            user_id=authorization,
             seti_id=payload.seti_id,
             card_brand=payload.card_brand,
             card_last4=payload.card_last4,

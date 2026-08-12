@@ -1,0 +1,11 @@
+[
+  .paths | to_entries | .[] | .key as $path |
+  .value | to_entries | .[] |
+  select(.key == "get" or .key == "post" or .key == "put" or .key == "patch") |
+  {
+    "endpoint": (env(PREFIX) + $path),
+    "method": (.key | upcase),
+    "backend_url": $path,
+    "host": env(HOST)
+  }
+]

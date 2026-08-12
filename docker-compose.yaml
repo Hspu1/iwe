@@ -131,8 +131,7 @@ services:
     command: ["run", "-c", "/etc/krakend/krakend.tmpl"]
     environment:
       - FC_ENABLE=1
-      - FC_TEMPLATES=/etc/krakend/templates
-      - IWE_URL=http://iwe:8000
+      - FC_SETTINGS=/etc/krakend/settings
     restart: unless-stopped
     # oom_score_adj: ???
     # cpuset: ???

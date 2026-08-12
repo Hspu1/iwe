@@ -5,16 +5,28 @@ dotenv: [.env]
 
 vars:
   UV_LINK_MODE: "copy"
+
   BUILD_DIR: "dist"
   IWE_SPEC: "{{.BUILD_DIR}}/iwe.json"
   COMBINED_OPENAPI_RAW: "{{.BUILD_DIR}}/openapi-raw.json"
   COMBINED_OPENAPI_FINAL: "{{.BUILD_DIR}}/openapi.json"
   GATEWAY_URL: '{{.GATEWAY_URL}}'
 
+  KRAKEND_SETTINGS_DIR: "deploy/krakend/settings"
+  KRAKEND_TMP_DIR: "dist/krakend-endpoints"
+  KRAKEND_FILTER: "deploy/krakend/openapi_to_endpoints.yq"
+
+  SERVICES:
+    - name: iwe
+      version: 1
+      dump_cmd: "uv run python src/iwe/scripts/openapi_dump.py"
+      host: "http://iwe:8000"
+
 tasks:
   default:
     cmds:
       - task: merge
+      - task: endpoints
 
   dump-iwe:
     cmds:
@@ -30,4 +42,28 @@ tasks:
       - yq eval '.servers = [{"url":"{{.GATEWAY_URL}}/v1/iwe"}]' {{.COMBINED_OPENAPI_RAW}} -o=json > {{.COMBINED_OPENAPI_FINAL}}
       - rm {{.COMBINED_OPENAPI_RAW}}
       - rm {{.IWE_SPEC}}
-      - echo "Done with openapi spec for gayway {{.GATEWAY_URL}}"
+
+  endpoints:
+      cmds:
+      - mkdir -p {{.BUILD_DIR}} {{.KRAKEND_SETTINGS_DIR}} {{.KRAKEND_TMP_DIR}}
+      - rm -f {{.KRAKEND_TMP_DIR}}/*.json
+      - for: {var: SERVICES}
+        task: endpoints-one
+        vars:
+          NAME: '{{.ITEM.name}}'
+          VERSION: '{{.ITEM.version}}'
+          DUMP_CMD: '{{.ITEM.dump_cmd}}'
+          HOST: '{{.ITEM.host}}'
+      - "yq eval-all -o=json '(. as $item ireduce ([]; . + $item)) | {\"list\": .}' {{.KRAKEND_TMP_DIR}}/*.json > {{.KRAKEND_SETTINGS_DIR}}/endpoints.json"
+      - rm -rf {{.KRAKEND_TMP_DIR}}
+      - echo "Done with openapi spec for gateway {{.GATEWAY_URL}}"
+
+
+  endpoints-one:
+    internal: true
+    vars:
+      SPEC: "{{.BUILD_DIR}}/{{.NAME}}.json"
+      PREFIX: "/v{{.VERSION}}/{{.NAME}}"
+    cmds:
+      - '{{.DUMP_CMD}} > {{.SPEC}}'
+      - PREFIX={{.PREFIX}} HOST={{.HOST}} yq eval --from-file={{.KRAKEND_FILTER}} -o=json {{.SPEC}} > {{.KRAKEND_TMP_DIR}}/{{.NAME}}.json

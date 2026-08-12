@@ -1,0 +1,70 @@
+{
+  "list": [
+    {
+      "endpoint": "/v1/iwe/identity/register",
+      "method": "POST",
+      "backend_url": "/identity/register",
+      "host": "http://iwe:8000"
+    },
+    {
+      "endpoint": "/v1/iwe/billing/bind-card",
+      "method": "POST",
+      "backend_url": "/billing/bind-card",
+      "host": "http://iwe:8000"
+    },
+    {
+      "endpoint": "/v1/iwe/billing/top-up",
+      "method": "POST",
+      "backend_url": "/billing/top-up",
+      "host": "http://iwe:8000"
+    },
+    {
+      "endpoint": "/v1/iwe/billing/cards",
+      "method": "GET",
+      "backend_url": "/billing/cards",
+      "host": "http://iwe:8000"
+    },
+    {
+      "endpoint": "/v1/iwe/billing/cards/set-default",
+      "method": "PATCH",
+      "backend_url": "/billing/cards/set-default",
+      "host": "http://iwe:8000"
+    },
+    {
+      "endpoint": "/v1/iwe/service/generate/seti-id",
+      "method": "POST",
+      "backend_url": "/service/generate/seti-id",
+      "host": "http://iwe:8000"
+    },
+    {
+      "endpoint": "/v1/iwe/orders/cart/positions",
+      "method": "POST",
+      "backend_url": "/orders/cart/positions",
+      "host": "http://iwe:8000"
+    },
+    {
+      "endpoint": "/v1/iwe/orders/cart/freeze",
+      "method": "POST",
+      "backend_url": "/orders/cart/freeze",
+      "host": "http://iwe:8000"
+    },
+    {
+      "endpoint": "/v1/iwe/orders/cart",
+      "method": "GET",
+      "backend_url": "/orders/cart",
+      "host": "http://iwe:8000"
+    },
+    {
+      "endpoint": "/v1/iwe/orders/cart/remove-pos",
+      "method": "PATCH",
+      "backend_url": "/orders/cart/remove-pos",
+      "host": "http://iwe:8000"
+    },
+    {
+      "endpoint": "/v1/iwe/healthz/readiness",
+      "method": "GET",
+      "backend_url": "/healthz/readiness",
+      "host": "http://iwe:8000"
+    }
+  ]
+}

@@ -37,7 +37,7 @@ router = APIRouter()
 
 
 @router.get("/cart", status_code=status.HTTP_200_OK)
-async def get_cart(x_user_id: Annotated[UUID, Header()]) -> CartResponse:
+async def get_cart(x_user_id: Annotated[UUID, Header(alias="X-User-Id")]) -> CartResponse:
     async with pg_ro_session() as session:
         positions_raw = await get_cart_positions(session=session, user_id=x_user_id)
 

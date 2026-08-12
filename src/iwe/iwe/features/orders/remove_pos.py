@@ -43,7 +43,7 @@ router = APIRouter()
 
 @router.patch("/cart/remove-pos")
 async def remove_pos(
-    x_user_id: Annotated[UUID, Header()],
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
     payload: RemovePositionRequest,
     response: Response,
 ) -> RemovePositionResponse:

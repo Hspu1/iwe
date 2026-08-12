@@ -35,7 +35,7 @@ router = APIRouter()
 
 
 @router.get("/cards", status_code=status.HTTP_200_OK)
-async def get_cards(x_user_id: Annotated[UUID, Header()]) -> CardsResponse:
+async def get_cards(x_user_id: Annotated[UUID, Header(alias="X-User-Id")]) -> CardsResponse:
     async with pg_ro_session() as session:
         retrieve_cards = await get_all_cards(session=session, user_id=x_user_id)
 

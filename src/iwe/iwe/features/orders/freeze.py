@@ -47,7 +47,7 @@ router = APIRouter()
 
 @router.post("/cart/freeze")
 async def freeze_cart(
-    x_user_id: Annotated[UUID, Header()], response: Response
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")], response: Response
 ) -> FreezeResponse:
 
     async with pg_session() as session:

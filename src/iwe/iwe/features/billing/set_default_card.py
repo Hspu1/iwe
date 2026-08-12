@@ -41,7 +41,7 @@ router = APIRouter()
 
 @router.patch("/cards/set-default")
 async def set_default_card(
-    x_user_id: Annotated[UUID, Header()],
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
     payload: SetDefCardRequest,
     response: Response,
 ) -> SetDefCardResponse:

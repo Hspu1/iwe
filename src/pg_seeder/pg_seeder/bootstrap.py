@@ -5,6 +5,7 @@ from typing import Annotated, Final
 
 import asyncpg
 import orjson
+from dotenv import find_dotenv
 from pydantic import AfterValidator, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from uuid6 import uuid7
@@ -17,11 +18,10 @@ from .statements import (
     UPSERT_WAREHOUSE_SQL,
 )
 
-# !!! locally? --> 3 !!!
-DADDY: Final[int] = 2
-SEEDS_DIR: Final[Path] = Path(__file__).resolve().parents[DADDY] / "data" / "seeds"
-ENV_FILE: Final[Path] = Path(__file__).resolve().parents[DADDY] / ".env"
-CFG = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
+SEEDS_DIR: Final[Path] = Path("/app/data/seeds")
+CFG = SettingsConfigDict(
+    env_file=find_dotenv(usecwd=True), env_file_encoding="utf-8", extra="ignore"
+)
 
 
 class PostgresSettings(BaseSettings):

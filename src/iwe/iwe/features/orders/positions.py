@@ -54,7 +54,7 @@ router = APIRouter()
 
 @router.post("/cart/positions")
 async def manage_position(
-    x_user_id: Annotated[UUID, Header()], payload: PositionRequest, response: Response
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")], payload: PositionRequest, response: Response
 ) -> PositionResponse:
 
     async with pg_session() as session:

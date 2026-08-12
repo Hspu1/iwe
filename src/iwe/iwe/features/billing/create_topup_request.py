@@ -4,7 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel
-from sqlalchemy import func, literal, select
+from sqlalchemy import cast, func, literal, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -62,7 +63,9 @@ router = APIRouter()
 
 @router.post("/top-up")
 async def create_request(
-    x_user_id: Annotated[UUID, Header()], payload: TopUpRequest, response: Response
+    x_user_id: Annotated[UUID, Header(alias="X-User-Id")],
+    payload: TopUpRequest,
+    response: Response,
 ) -> TopUpResponse:
 
     async with pg_session() as session:
@@ -170,18 +173,17 @@ async def create_topup_request(
 
     stmt_outbox = pg_insert(OutboxEventsModel).values(
         event_type=OutboxEventType.HOLD_FUNDS_REQUESTED,
-        # partition_key=...
         payload=func.json_build_object(
-            literal(WalletTopUpsModel.user_id.name),
+            "user_id",
             user_id,
-            literal(WalletTopUpsModel.amount_cents.name),
+            "amount_cents",
             amount_cents,
-            literal(UserCardsModel.seti_id.name),
+            "seti_id",
             card_seti_id,
-            literal(WalletTopUpsModel.idempotency_key.name),
+            "idempotency_key",
             idempotency_key,
-            literal(IngredientsSnapshotModel.snapshot.name),
-            ingredients_snapshot,
+            "snapshot",
+            cast(ingredients_snapshot, JSONB),
         ),
     )
 
