@@ -9,7 +9,10 @@ CFG = SettingsConfigDict(
 )
 
 
+# eww
 class ScalarSettings(BaseSettings):
+    """Local dev only (no Docker)"""
+
     model_config = CFG
 
     scalar_static_dir: str = "/opt/scalar"
