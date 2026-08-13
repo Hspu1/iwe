@@ -152,12 +152,13 @@ services:
       - SPEC_URL=/docs/openapi.json
       - |
         API_REFERENCE_CONFIG={
-          "theme": "saturn",
+          "theme": "none",
           "layout": "classic",
           "hideDownloadButton": true,
           "hideClientButton": true,
           "hiddenClients": true,
-          "hideSearch": true
+          "hideSearch": true,
+          "customCss": ":root, .dark-mode { --scalar-background-1: #000000 !important; --scalar-background-2: #0b0b0c !important; --scalar-background-3: #141416 !important; --scalar-color-accent: #00ff66 !important; --scalar-color-1: #ffffff !important; --scalar-color-2: #b0b0b5 !important; --scalar-color-3: #707075 !important; --scalar-color-green: #00ffcc !important; --scalar-color-blue: #00bfff !important; --scalar-color-orange: #ffaa00 !important; --scalar-color-red: #ff3366 !important; --scalar-color-purple: #cc00ff !important; }"
         }
     restart: unless-stopped
     # oom_score_adj: ???
