@@ -67,3 +67,4 @@ tasks:
     cmds:
       - '{{.DUMP_CMD}} > {{.SPEC}}'
       - PREFIX={{.PREFIX}} HOST={{.HOST}} yq eval --from-file={{.KRAKEND_FILTER}} -o=json {{.SPEC}} > {{.KRAKEND_TMP_DIR}}/{{.NAME}}.json
+      - rm {{.SPEC}}
