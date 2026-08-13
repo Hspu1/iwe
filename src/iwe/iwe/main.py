@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from iwe.infra.postgres.manager import PostgresManager
 from iwe.shared.env_conf import pg_stg
 
-from .features import components_router
+from .features import features_router
 from .healthz import healthz_router
 from .lifespan import get_lifespan
 
@@ -18,7 +18,7 @@ def create_app() -> FastAPI:
         redoc_url=None,
     )
 
-    app.include_router(components_router)
+    app.include_router(features_router)
     app.include_router(healthz_router)
 
     return app
