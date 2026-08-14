@@ -24,13 +24,13 @@ def get_lifespan(
                 coro=dependencies.pg_manager.connect(),
                 atimeout=10.0,
             )
-        except Exception as e:
+        except Exception as err:
             await silent_close(
                 service_name="PostgreSQL", coro=dependencies.pg_manager.disconnect()
             )
             raise SafeStartError(
                 message="App startup failed due to PostgreSQL error"
-            ) from e
+            ) from err
 
         try:
             yield
