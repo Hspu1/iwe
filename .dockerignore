@@ -1,0 +1,48 @@
+**
+
+
+
+!.gitignore
+!.dockerignore
+!docker-compose.yaml
+!docker-compose.*.yaml
+!Taskfile.yaml
+
+!pyproject.toml
+!.python-version
+!uv.lock
+
+
+
+!data/
+!data/**
+
+!deploy/
+!deploy/**
+
+!dist/
+!dist/**
+
+!src/
+!src/**
+
+!tests/
+!tests/**
+
+
+
+# yeah
+src/**/__pycache__/
+tests/**/__pycache__/
+# no cheatsheets
+data/**/cheatsheet.txt
+deploy/**/cheatsheet.txt
+dist/**/cheatsheet.txt
+src/**/cheatsheet.txt
+tests/**/cheatsheet.txt
+# local dev only (no Docker)
+assets/scalar.js
+scalar_spec.py
+# no docs etc
+**/*.md
+docs/

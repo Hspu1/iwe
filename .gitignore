@@ -1,12 +1,18 @@
-# Python + generated shi
-**/__pycache__/
-*.py[cod]
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
 *$py.class
+
+# C extensions
 *.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
+
 dist/
+
 downloads/
 eggs/
 .eggs/
@@ -16,13 +22,49 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# environment
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+*.lcov
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# pixi
+# pixi.lock
+.pixi/
+!.pixi/config.toml
+
+# Celery stuff
+celerybeat-schedule*
+celerybeat.pid
+
+# Redis
+*.rdb
+*.aof
+*.pid
+
+# Environments
 .env
+.envrc
 .venv
 env/
 venv/
@@ -30,36 +72,30 @@ ENV/
 env.bak/
 venv.bak/
 
-# PostgreSQL
-postgres_data/
+# mkdocs documentation
+/site
 
-# Redis
-dump.rdb
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
-# logs
-*.log
-logs/
-*.logs
+# Ruff stuff
+.ruff_cache/
 
-# tests (who writes ts?)
-.coverage
-.coverage.*
-htmlcov/
-.pytest_cache/
-
-# IDE (who uses ts?)
+# PyCharm
 .idea/
-*.iml
+
+# Visual Studio Code
+.vscode/
+tempCodeRunnerFile.py
 
 # local stuff
 .local
-
 # no ghey :/
 gay.py
-
 # no cheatsheets
 cheatsheet.txt
-
 # local based stuff only
-assets/
+assets/scalar.js
 scalar_spec.py
