@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Header, Response, status
 from pydantic import BaseModel
-from sqlalchemy import cast, func, literal, select
+from sqlalchemy import cast, func, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
